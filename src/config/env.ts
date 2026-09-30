@@ -22,6 +22,7 @@ export const envSchema = z
     SERVER_IDLE_TIMEOUT_SECONDS: z.coerce.number().int().min(1).max(255).default(15),
     MAX_REQUEST_BODY_BYTES: z.coerce.number().int().min(1024).default(1_048_576),
     SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().min(1000).default(15_000),
+    SHUTDOWN_DRAIN_DELAY_MS: z.coerce.number().int().min(0).max(60_000).default(1000),
     SECURITY_HEADERS_ENABLED: booleanFromEnv.default(true),
 
     // Optional Prometheus-compatible metrics endpoint.
