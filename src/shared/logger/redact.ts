@@ -5,7 +5,11 @@ const SENSITIVE_KEY_PATTERN =
 
 const CREDENTIAL_URL_PATTERN = /^([a-z][a-z0-9+.-]*:\/\/)([^/@\s]+)@/i;
 
-export function redactLogValue(value: unknown, key?: string, seen = new WeakSet<object>()): unknown {
+export function redactLogValue(
+  value: unknown,
+  key?: string,
+  seen = new WeakSet<object>()
+): unknown {
   if (key && SENSITIVE_KEY_PATTERN.test(normalizeKey(key))) {
     return REDACTED;
   }
