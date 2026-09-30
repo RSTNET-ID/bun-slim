@@ -15,7 +15,6 @@ RUN apk add --no-cache \
     ca-certificates \
     curl \
     dumb-init \
-    libstdc++ \
   && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
   && echo "${TZ}" > /etc/timezone
 
@@ -54,6 +53,7 @@ RUN apk add --no-cache \
     ca-certificates \
     curl \
     dumb-init \
+    libstdc++ \
   && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
   && echo "${TZ}" > /etc/timezone
 
