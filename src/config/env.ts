@@ -27,6 +27,10 @@ export const envSchema = z
 
     // Optional Prometheus-compatible metrics endpoint.
     METRICS_ENABLED: booleanFromEnv.default(false),
+    METRICS_TOKEN: z.string().min(24).optional(),
+
+    // Example CRUD routes are for development/reference only.
+    EXAMPLE_ROUTES_ENABLED: booleanFromEnv.default(false),
 
     // Shared outbound HTTP policy. Individual adapters may override these values.
     OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().min(100).default(5000),
@@ -70,6 +74,50 @@ export const envSchema = z
       postgres: ['postgres', 'postgresql'],
       mysql: ['mysql', 'mysql2'],
     };
+
+    if (env.METRICS_ENABLED && !env.METRICS_TOKEN) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['METRICS_TOKEN'],
+        message: 'METRICS_TOKEN is required when metrics are enabled',
+      });
+    }
+
+    if (env.APP_ENV === 'staging' || env.APP_ENV === 'production') {
+      if (env.EXAMPLE_ROUTES_ENABLED) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['EXAMPLE_ROUTES_ENABLED'],
+          message: 'Example routes must be disabled in staging/production',
+        });
+      }
+
+      try {
+        const databaseUrl = new URL(env.DATABASE_URL);
+        const weakUsernames = new Set(['user', 'test', 'example', 'postgres']);
+        const weakPasswords = new Set([
+          'password',
+          'changeme',
+          'secret',
+          'test',
+          'example',
+          'postgres',
+        ]);
+
+        if (
+          weakUsernames.has(decodeURIComponent(databaseUrl.username).toLowerCase()) &&
+          weakPasswords.has(decodeURIComponent(databaseUrl.password).toLowerCase())
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['DATABASE_URL'],
+            message: 'DATABASE_URL uses placeholder/default credentials in staging/production',
+          });
+        }
+      } catch {
+        // URL validation already reports malformed DATABASE_URL.
+      }
+    }
 
     if (env.WORKER_ENABLED && !env.REDIS_URL) {
       ctx.addIssue({

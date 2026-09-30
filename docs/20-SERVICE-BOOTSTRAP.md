@@ -17,7 +17,9 @@ Saat membuat service baru:
 7. aktifkan Redis worker hanya bila background processing benar-benar dibutuhkan
 8. tentukan auth/tenant policy bila service menerima traffic terproteksi
 9. definisikan outbound dependency name + timeout/idempotency bila ada provider/API eksternal
-10. jalankan seluruh release readiness checks sebelum deployment pertama
+10. tetapkan outbound origin/SSRF policy untuk setiap provider/internal HTTP dependency
+11. pastikan route contoh sudah dihapus atau tetap disabled
+12. jalankan seluruh release readiness checks sebelum deployment pertama
 
 ## Required Commands
 
@@ -83,4 +85,6 @@ Pastikan:
 - reverse proxy timeout/body limit sesuai service
 - readiness/liveness terhubung ke orchestrator/load balancer
 - termination grace period > drain delay + shutdown timeout
-- `/metrics` internal bila diaktifkan
+- `/metrics` memakai `METRICS_TOKEN` dan tetap internal bila diaktifkan
+- `EXAMPLE_ROUTES_ENABLED=false`
+- provider/internal base URL berasal dari trusted config, bukan input client

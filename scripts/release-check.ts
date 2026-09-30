@@ -32,6 +32,7 @@ const REQUIRED_FILES = [
   'docs/21-CORE-FREEZE.md',
   'docs/22-RELEASE-READINESS.md',
   'docs/23-SECRET-LOGGING-STANDARD.md',
+  'docs/24-PRODUCTION-SECURITY-REVIEW.md',
 ] as const;
 
 const REQUIRED_SCRIPTS = [
@@ -81,7 +82,14 @@ for (const pattern of ['.env', 'dist/', 'node_modules/']) {
 }
 
 const envExample = await Bun.file('.env.example').text();
-for (const key of ['APP_ENV=', 'SERVICE_NAME=', 'DATABASE_URL=', 'DB_DRIVER=']) {
+for (const key of [
+  'APP_ENV=',
+  'SERVICE_NAME=',
+  'DATABASE_URL=',
+  'DB_DRIVER=',
+  'EXAMPLE_ROUTES_ENABLED=',
+  'METRICS_ENABLED=',
+]) {
   if (!envExample.includes(key)) {
     failures.push(`.env.example must define: ${key}`);
   }
