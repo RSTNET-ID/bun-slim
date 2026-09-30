@@ -127,3 +127,24 @@ docker compose \
 Register job handler di `src/worker/registry.ts` dan enqueue melalui `@/worker/producer`.
 
 Lihat `docs/12-WORKER-REDIS-STANDARD.md` untuk delivery semantics, retry, dead-letter, stale reclaim, idempotency, dan graceful shutdown.
+
+## Resilience, Metrics, and Production Hardening
+
+Starter menyediakan baseline tambahan tanpa dependency runtime baru:
+
+- resilient outbound HTTP melalui `fetchWithPolicy()`
+- timeout + bounded retry
+- mandatory Idempotency-Key untuk retried POST/PATCH
+- request ID propagation
+- optional Prometheus-compatible `/metrics`
+- low-cardinality HTTP/outbound metrics
+- API security headers
+- Bun request body hard limit
+- explicit server idle timeout
+- bounded graceful shutdown
+- production dependency audit di CI
+
+Dokumentasi:
+- `docs/14-OUTBOUND-HTTP-STANDARD.md`
+- `docs/15-METRICS-STANDARD.md`
+- `docs/16-PRODUCTION-HARDENING.md`
