@@ -1,69 +1,93 @@
 # Bun + Hono Microservice Starter
 
-Standar starter microservice menggunakan Bun native + Hono.
+Starter microservice ringan menggunakan Bun native + Hono.
 
 ## Baseline
+
 - **Runtime**: Bun 1.4+
 - **HTTP Framework**: Hono
 - **Language**: TypeScript
-- **Database Driver**: Bun Native SQL (`import { SQL } from "bun"`) - PostgreSQL default
+- **Database**: Bun.SQL, PostgreSQL default
 - **Validation**: Zod
 - **Testing**: `bun:test`
-- **Container**: Docker multi-stage build (non-root)
+- **Container**: Docker multi-stage build, non-root
+
+PostgreSQL adalah implementasi default. MySQL dapat digunakan kemudian dengan mengganti database boundary yang memang dialect-specific tanpa mengubah handler/service.
 
 ## Quick Start
 
-### Installation
 ```bash
 bun install
-```
-
-### Environment Setup
-```bash
 cp .env.example .env
-```
-
-### Development
-```bash
 bun run dev
 ```
 
-### List Routes
+### Migration
+
 ```bash
-bun route:list
+bun run migrate:up
+bun run migrate:status
 ```
 
-### Build Binary
-```bash
-bun run build
-```
+### Tests
 
-### Run Tests
+Unit + HTTP contract:
+
 ```bash
 bun test
 ```
 
-### Type Check
+Per layer:
+
 ```bash
+bun run test:unit
+bun run test:contract
+bun run test:integration
+```
+
+`test:integration` membutuhkan PostgreSQL test database yang sudah dimigrasi.
+
+### Quality
+
+```bash
+bun run format:check
+bun run lint
 bun run typecheck
+bun run build
+```
+
+### List Routes
+
+```bash
+bun route:list
 ```
 
 ### Docker
+
 ```bash
 docker compose up --build
 ```
 
 ## Structure
+
 ```text
 src/
-├── app.ts                 # Hono app instance & global middlewares
-├── server.ts              # Bun server entrypoint & graceful shutdown
-├── config/                # Environment configuration validation
-├── database/              # Bun native SQL client, health & transactions
-├── shared/                # Logging, request ID, error handling, HTTP responses
-├── routes/                # Health checks (/health) & API routes (/api/v1)
+├── app.ts
+├── server.ts
+├── config/
+├── database/
+├── shared/
+├── routes/
 └── modules/
-    └── example/           # Example module (route -> handler -> service -> repository)
+
+tests/
+├── unit/
+├── contract/
+└── integration/
+
+database/
+├── migrate.ts
+└── migrations/
 ```
 
-Lihat `docs/00-PROJECT.md` sampai `docs/10-AGENT-STANDARD.md` untuk standar lengkap.
+Lihat `docs/` dan `AGENTS.md` untuk standar architecture, database, security, testing, deployment, dan coding-agent.
