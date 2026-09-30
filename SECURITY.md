@@ -19,6 +19,9 @@ Gunakan private security reporting/repository security advisory pada GitHub orga
 - retry write membutuhkan idempotency strategy
 - container production berjalan non-root
 - Redis/database tidak diekspos public tanpa kebutuhan dan kontrol eksplisit
+- reference/example routes tidak aktif di staging/production
+- metrics yang diaktifkan membutuhkan bearer token dan tetap sebaiknya dibatasi jaringan
+- provider/outbound URL tidak boleh berasal langsung dari input user tanpa SSRF/origin policy
 
 ## Supported Version
 
