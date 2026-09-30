@@ -3,7 +3,7 @@ import { fetchWithPolicy, OutboundHttpError } from '@/shared/http/client';
 
 describe('fetchWithPolicy', () => {
   it('propagates X-Request-ID to outbound requests', async () => {
-    let receivedRequestId: string | null = null;
+    const receivedRequestIds: Array<string | null> = [];
 
     const response = await fetchWithPolicy(
       'https://example.test/resource',
@@ -13,14 +13,14 @@ describe('fetchWithPolicy', () => {
         requestId: 'req_test_123',
         maxRetries: 0,
         fetchFn: async (_input, init) => {
-          receivedRequestId = new Headers(init?.headers).get('X-Request-ID');
+          receivedRequestIds.push(new Headers(init?.headers).get('X-Request-ID'));
           return new Response('ok', { status: 200 });
         },
       }
     );
 
     expect(response.status).toBe(200);
-    expect(receivedRequestId).toBe('req_test_123');
+    expect(receivedRequestIds[0]).toBe('req_test_123');
   });
 
   it('retries transient GET responses', async () => {
