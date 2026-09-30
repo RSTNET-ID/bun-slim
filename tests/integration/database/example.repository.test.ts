@@ -1,17 +1,18 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import type { SQL } from 'bun';
 import type { ExampleRepository } from '@/modules/example/example.repository';
 
-const hasDatabase = Boolean(process.env.DATABASE_URL);
+const runPostgresIntegration = process.env.RUN_POSTGRES_INTEGRATION === 'true';
 
-if (!hasDatabase) {
+if (!runPostgresIntegration) {
   describe.skip('ExampleRepository — PostgreSQL integration', () => {
-    it('requires DATABASE_URL', () => {});
+    it('requires RUN_POSTGRES_INTEGRATION=true', () => {});
   });
 } else {
   describe('ExampleRepository — PostgreSQL integration', () => {
     let repository: ExampleRepository;
     let closeDbClient: () => Promise<void>;
-    let getDbClient: typeof import('@/database/client').getDbClient;
+    let getDbClient: () => SQL;
     const createdIds: string[] = [];
 
     beforeAll(async () => {

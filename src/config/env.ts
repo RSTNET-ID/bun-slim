@@ -26,6 +26,21 @@ export const envSchema = z
     DB_CONNECTION_TIMEOUT_SECONDS: z.coerce.number().int().min(1).default(10),
     DB_MAX_LIFETIME_SECONDS: z.coerce.number().int().min(0).default(0),
     DB_PREPARE: booleanFromEnv.default(true),
+
+    // Optional Redis worker/queue pack. HTTP-only services do not require Redis.
+    WORKER_ENABLED: booleanFromEnv.default(false),
+    REDIS_URL: z.string().url('REDIS_URL must be a valid Redis URL').optional(),
+    REDIS_CONNECTION_TIMEOUT_MS: z.coerce.number().int().min(100).default(5000),
+    REDIS_MAX_RETRIES: z.coerce.number().int().min(0).max(100).default(20),
+    WORKER_QUEUE_NAME: z.string().min(1).default('default'),
+    WORKER_QUEUE_PREFIX: z.string().min(1).default('queue'),
+    WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(1),
+    WORKER_BLOCK_MS: z.coerce.number().int().min(100).max(60_000).default(1000),
+    WORKER_JOB_TIMEOUT_MS: z.coerce.number().int().min(100).default(30_000),
+    WORKER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(100).default(3),
+    WORKER_RETRY_BACKOFF_MS: z.coerce.number().int().min(0).default(1000),
+    WORKER_STALE_AFTER_MS: z.coerce.number().int().min(1000).default(60_000),
+    WORKER_RECLAIM_INTERVAL_MS: z.coerce.number().int().min(1000).default(15_000),
   })
   .superRefine((env, ctx) => {
     let protocol: string;
@@ -39,6 +54,14 @@ export const envSchema = z
       postgres: ['postgres', 'postgresql'],
       mysql: ['mysql', 'mysql2'],
     };
+
+    if (env.WORKER_ENABLED && !env.REDIS_URL) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['REDIS_URL'],
+        message: 'REDIS_URL is required when WORKER_ENABLED=true',
+      });
+    }
 
     if (!acceptedProtocols[env.DB_DRIVER].includes(protocol)) {
       ctx.addIssue({

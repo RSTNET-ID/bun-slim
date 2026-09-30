@@ -134,7 +134,10 @@ async function cmdCreate(name: string): Promise<void> {
     return;
   }
 
-  const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[^0-9]/g, '')
+    .slice(0, 14);
   const normalizedName = name
     .trim()
     .toLowerCase()
