@@ -146,10 +146,7 @@ export class WorkerRunner {
     const startedAt = performance.now();
 
     try {
-      await runWithTimeout(
-        (signal) => handler(job, { signal }),
-        config.WORKER_JOB_TIMEOUT_MS
-      );
+      await runWithTimeout((signal) => handler(job, { signal }), config.WORKER_JOB_TIMEOUT_MS);
 
       await this.queue.ack(message.id);
 
@@ -252,10 +249,7 @@ async function runWithTimeout(
   }
 }
 
-async function sleepUntilRetry(
-  delayMs: number,
-  isStopping: () => boolean
-): Promise<boolean> {
+async function sleepUntilRetry(delayMs: number, isStopping: () => boolean): Promise<boolean> {
   const stepMs = 250;
   let remaining = delayMs;
 
