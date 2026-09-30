@@ -18,7 +18,9 @@ const sql = getDbClient();
 
 function assertSupportedDriver(): void {
   if (config.DB_DRIVER !== 'postgres') {
-    throw new Error(`Migration runner currently supports PostgreSQL only. DB_DRIVER=${config.DB_DRIVER}`);
+    throw new Error(
+      `Migration runner currently supports PostgreSQL only. DB_DRIVER=${config.DB_DRIVER}`
+    );
   }
 }
 
@@ -132,7 +134,10 @@ async function cmdCreate(name: string): Promise<void> {
     return;
   }
 
-  const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[^0-9]/g, '')
+    .slice(0, 14);
   const normalizedName = name
     .trim()
     .toLowerCase()
