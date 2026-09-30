@@ -76,3 +76,15 @@ Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
 - Perubahan core baru harus berupa correctness/security/reliability fix, compatibility update, complexity reduction, atau proven production failure mode.
 - ORM, OpenTelemetry, Swagger generator, broker, cache abstraction, circuit breaker framework, scheduler, object-storage SDK, email, dan websocket tetap service-specific/optional kecuali ada bukti kuat untuk core.
 - Sebelum release/tag jalankan `bun run release:check` dan ikuti `docs/22-RELEASE-READINESS.md`.
+
+
+## Final Production Security
+
+- Reference/example routes must remain disabled outside development/test.
+- Enabled metrics require a secret bearer token and should remain network-restricted.
+- Authentication verifier errors must fail closed; do not expose verifier/provider detail.
+- AppError details are internal by default; expose only caller-safe validation details explicitly.
+- Outbound provider URLs must come from trusted configuration unless an explicit SSRF/origin policy exists.
+- Do not weaken staging/production placeholder-credential guards for convenience.
+- CI third-party actions should remain pinned to immutable commits.
+- Review `docs/24-PRODUCTION-SECURITY-REVIEW.md` before production release.
