@@ -95,18 +95,12 @@ const forbiddenEnvFragments = [
 
 for (const pattern of forbiddenEnvFragments) {
   if (pattern.test(envExample)) {
-    failures.push(
-      `.env.example contains a value matching forbidden secret pattern: ${pattern}`
-    );
+    failures.push(`.env.example contains a value matching forbidden secret pattern: ${pattern}`);
   }
 }
 
 const agents = await Bun.file('AGENTS.md').text();
-for (const doc of [
-  'docs/00-PROJECT.md',
-  'docs/01-ARCHITECTURE.md',
-  'docs/13-CODING-RULES.md',
-]) {
+for (const doc of ['docs/00-PROJECT.md', 'docs/01-ARCHITECTURE.md', 'docs/13-CODING-RULES.md']) {
   if (!agents.includes(doc)) {
     failures.push(`AGENTS.md must reference: ${doc}`);
   }
