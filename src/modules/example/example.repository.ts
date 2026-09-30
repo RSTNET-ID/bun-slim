@@ -46,16 +46,13 @@ export class ExampleRepository {
     const limit = query.limit ?? 20;
 
     if (this.useInMemory) {
-      let items = Array.from(this._store.values()).sort(
-        (a, b) => a.created_at.getTime() - b.created_at.getTime()
-      );
+      let items = Array.from(this._store.values()).sort((a, b) => a.id.localeCompare(b.id));
 
       if (query.status) {
         items = items.filter((i) => i.status === query.status);
       }
       if (query.cursor) {
-        const idx = items.findIndex((i) => i.id === query.cursor);
-        if (idx !== -1) items = items.slice(idx + 1);
+        items = items.filter((item) => item.id.localeCompare(query.cursor!) > 0);
       }
       return items.slice(0, limit + 1);
     }
@@ -167,32 +164,34 @@ export class ExampleRepository {
     data: UpdateExampleDTO,
     executor?: TransactionContext
   ): Promise<ExampleItem | null> {
-    const existing = await this.findById(id, executor);
-    if (!existing) return null;
-
-    const updated: ExampleItem = {
-      ...existing,
-      name: data.name ?? existing.name,
-      description: data.description !== undefined ? data.description : existing.description,
-      status: data.status ?? existing.status,
-      category_id: data.category_id !== undefined ? data.category_id : existing.category_id,
-      updated_at: new Date(),
-    };
+    const updatedAt = new Date();
 
     if (this.useInMemory) {
+      const existing = this._store.get(id);
+      if (!existing) return null;
+
+      const updated: ExampleItem = {
+        ...existing,
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.description !== undefined ? { description: data.description } : {}),
+        ...(data.status !== undefined ? { status: data.status } : {}),
+        ...(data.category_id !== undefined ? { category_id: data.category_id } : {}),
+        updated_at: updatedAt,
+      };
       this._store.set(id, updated);
       return updated;
     }
 
     const sql = executor || getDbClient();
+    const changes: Record<string, unknown> = { updated_at: updatedAt };
+    if (data.name !== undefined) changes.name = data.name;
+    if (data.description !== undefined) changes.description = data.description;
+    if (data.status !== undefined) changes.status = data.status;
+    if (data.category_id !== undefined) changes.category_id = data.category_id;
+
     const rows = (await sql`
       UPDATE examples
-      SET
-        name        = ${updated.name},
-        description = ${updated.description},
-        status      = ${updated.status},
-        category_id = ${updated.category_id},
-        updated_at  = ${updated.updated_at}
+      SET ${sql(changes)}
       WHERE id = ${id}
       RETURNING id, name, description, status, category_id, created_at, updated_at
     `) as unknown as ExampleItem[];
@@ -207,10 +206,12 @@ export class ExampleRepository {
     }
 
     const sql = executor || getDbClient();
-    const result = (await sql`
-      DELETE FROM examples WHERE id = ${id}
-    `) as unknown as { count?: number };
-    return result.count !== 0;
+    const rows = (await sql`
+      DELETE FROM examples
+      WHERE id = ${id}
+      RETURNING id
+    `) as unknown as Array<{ id: string }>;
+    return rows.length === 1;
   }
 }
 

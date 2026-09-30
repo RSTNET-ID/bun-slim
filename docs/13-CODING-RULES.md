@@ -113,7 +113,8 @@ create = async (c: Context) => {
   await sql`SELECT * FROM examples WHERE name = ${name}`;
   ```
 - Gunakan `runTransaction(fn)` untuk operasi multi-step yang harus atomic.
-- Index wajib ada untuk kolom yang digunakan di `WHERE`, `ORDER BY`, atau `JOIN`.
+- Partial update harus mengubah hanya kolom yang dikirim bila overwrite field lain dapat menyebabkan lost update.
+- Index wajib dipertimbangkan untuk pola `WHERE`, `ORDER BY`, dan `JOIN`; buat composite index bila sesuai pola query nyata, bukan sekadar satu index per kolom.
 
 ---
 
@@ -122,7 +123,7 @@ create = async (c: Context) => {
 - Gunakan cursor pagination untuk list endpoint, bukan offset/page.
 - Repository mengembalikan **limit+1 items** untuk deteksi `has_more`.
 - Handler menggunakan `sendCursorPaginated()` untuk format response standar.
-- Cursor default menggunakan `id` (UUID, bertipe `ORDER BY id ASC`).
+- Cursor default menggunakan `id` dengan `ORDER BY id ASC` agar deterministic dan sama antara test/store implementation. Cursor UUID ini bukan jaminan urutan kronologis. Jika bisnis membutuhkan urutan waktu, gunakan composite cursor seperti `created_at + id`.
 - Response shape wajib mengikuti `CursorPaginatedResponse<T>`:
   ```json
   {
@@ -167,8 +168,9 @@ create = async (c: Context) => {
 
 ## 11. Testing
 
-- Unit test: hanya business logic di service, tidak ada HTTP, tidak ada DB.
-- Integration test: end-to-end HTTP → in-memory repository. Validasi contract API.
+- Unit test: business logic/service tanpa HTTP dan tanpa database nyata.
+- Contract test: HTTP → handler → service → in-memory repository untuk memvalidasi API contract.
+- Integration test: repository/transaction terhadap PostgreSQL nyata.
 - Setiap test file harus **terisolasi**: gunakan instance baru per `beforeEach`, bukan shared state.
 - Cover minimal: success path, validation failure, not found, business failure.
 - Beri nama test yang mendeskripsikan behavior, bukan implementasi:
@@ -194,9 +196,12 @@ create = async (c: Context) => {
 
 ## 13. Migration
 
-- Setiap migration wajib mengeksport `up(sql)` dan `down(sql)`.
+- Setiap migration wajib mengekspor `up(sql)` dan `down(sql)`.
 - `down` harus benar-benar dapat memutar balik perubahan `up`.
 - Nama file: `<timestamp_14digit>_<deskripsi_singkat>.ts`.
+- PostgreSQL migration dijalankan atomic dalam transaction bersama pencatatan `schema_migrations`.
+- Migration runner memakai advisory transaction lock agar deployment paralel tidak mengeksekusi migration yang sama bersamaan.
+- `migrate:refresh` dilarang pada `APP_ENV=production`.
 - Jangan ubah migration yang sudah diaplikasikan ke production. Buat migration baru.
 - Seed data untuk referensi (categories, config) masuk di migration, bukan di service.
 

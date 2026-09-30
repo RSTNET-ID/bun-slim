@@ -33,8 +33,51 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
-      - name: Test
-        run: bun test
+      - name: Unit and contract tests
+        run: bun run test
 
       - name: Build standalone binary
         run: bun run build
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: example_service
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U user -d example_service"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      APP_ENV: test
+      SERVICE_NAME: bun-slim-ci
+      LOG_LEVEL: warn
+      DB_DRIVER: postgres
+      DATABASE_URL: postgres://user:password@127.0.0.1:5432/example_service
+      DB_POOL_MAX: 5
+      DB_PREPARE: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Install dependencies
+        run: HUSKY=0 bun install --frozen-lockfile
+
+      - name: Apply migrations
+        run: bun run migrate:up
+
+      - name: PostgreSQL integration tests
+        run: bun run test:integration

@@ -1,37 +1,28 @@
 #!/usr/bin/env bun
-/**
- * Database Migration Runner
- *
- * Usage:
- *   bun run migrate up       — Jalankan semua migration yang belum diaplikasikan
- *   bun run migrate down     — Rollback migration terakhir
- *   bun run migrate refresh  — down semua lalu up semua (dev only!)
- *   bun run migrate create <name>  — Buat file migration baru
- *   bun run migrate status   — Tampilkan status migration
- *
- * Convention:
- *   File di database/migrations/ menggunakan format:
- *   <timestamp>_<snake_case_name>.ts
- *   dan WAJIB mengeksport fungsi `up(sql)` dan `down(sql)`.
- */
-
-import { SQL } from 'bun';
+import type { SQL, TransactionSQL } from 'bun';
 import { readdir } from 'node:fs/promises';
 import { join, basename } from 'node:path';
 import { config } from '../src/config';
+import { getDbClient, closeDbClient } from '../src/database/client';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+type MigrationExecutor = SQL | TransactionSQL;
 
 interface MigrationModule {
-  up: (sql: SQL) => Promise<void>;
-  down: (sql: SQL) => Promise<void>;
+  up: (sql: MigrationExecutor) => Promise<void>;
+  down: (sql: MigrationExecutor) => Promise<void>;
 }
 
-// ─── DB Connection ────────────────────────────────────────────────────────────
+const MIGRATIONS_DIR = join(import.meta.dir, 'migrations');
+const MIGRATION_LOCK_KEY = 'bun-slim-schema-migrations';
+const sql = getDbClient();
 
-const sql = new SQL(config.DATABASE_URL);
-
-// ─── Migration Table ──────────────────────────────────────────────────────────
+function assertSupportedDriver(): void {
+  if (config.DB_DRIVER !== 'postgres') {
+    throw new Error(
+      `Migration runner currently supports PostgreSQL only. DB_DRIVER=${config.DB_DRIVER}`
+    );
+  }
+}
 
 async function ensureMigrationTable(): Promise<void> {
   await sql`
@@ -42,87 +33,96 @@ async function ensureMigrationTable(): Promise<void> {
   `;
 }
 
-async function getAppliedMigrations(): Promise<Set<string>> {
-  const rows = await sql<{ version: string }[]>`
+async function getAppliedMigrations(executor: MigrationExecutor = sql): Promise<Set<string>> {
+  const rows = await executor<{ version: string }[]>`
     SELECT version FROM schema_migrations ORDER BY version ASC
   `;
-  return new Set(rows.map((r) => r.version));
+  return new Set(rows.map((row) => row.version));
 }
 
-async function markApplied(version: string): Promise<void> {
-  await sql`INSERT INTO schema_migrations (version) VALUES (${version})`;
+async function isApplied(version: string, executor: MigrationExecutor): Promise<boolean> {
+  const rows = await executor<{ version: string }[]>`
+    SELECT version FROM schema_migrations WHERE version = ${version} LIMIT 1
+  `;
+  return rows.length === 1;
 }
 
-async function markReverted(version: string): Promise<void> {
-  await sql`DELETE FROM schema_migrations WHERE version = ${version}`;
+async function markApplied(version: string, executor: MigrationExecutor): Promise<void> {
+  await executor`INSERT INTO schema_migrations (version) VALUES (${version})`;
 }
 
-// ─── Migration Discovery ──────────────────────────────────────────────────────
+async function markReverted(version: string, executor: MigrationExecutor): Promise<void> {
+  await executor`DELETE FROM schema_migrations WHERE version = ${version}`;
+}
 
-const MIGRATIONS_DIR = join(import.meta.dir, 'migrations');
+async function withMigrationLock<T>(fn: (tx: TransactionSQL) => Promise<T>): Promise<T> {
+  return await sql.begin(async (tx) => {
+    await tx`SELECT pg_advisory_xact_lock(hashtext(${MIGRATION_LOCK_KEY}))`;
+    return await fn(tx);
+  });
+}
 
 async function discoverMigrations(): Promise<string[]> {
   const files = await readdir(MIGRATIONS_DIR);
-  return files.filter((f) => f.endsWith('.ts') && !f.startsWith('_')).sort();
+  return files.filter((file) => file.endsWith('.ts') && !file.startsWith('_')).sort();
 }
 
 async function loadMigration(filename: string): Promise<MigrationModule> {
   return await import(join(MIGRATIONS_DIR, filename));
 }
 
-// ─── Commands ─────────────────────────────────────────────────────────────────
-
 async function cmdUp(): Promise<void> {
   await ensureMigrationTable();
-  const applied = await getAppliedMigrations();
   const files = await discoverMigrations();
-  const pending = files.filter((f) => !applied.has(f));
 
-  if (pending.length === 0) {
-    console.log('✅ No pending migrations.');
-    return;
+  for (const file of files) {
+    await withMigrationLock(async (tx) => {
+      if (await isApplied(file, tx)) return;
+
+      console.log(`⬆️  Running migration: ${file}`);
+      const mod = await loadMigration(file);
+      await mod.up(tx);
+      await markApplied(file, tx);
+      console.log(`✅ Applied: ${file}`);
+    });
   }
 
-  for (const file of pending) {
-    console.log(`⬆️  Running migration: ${file}`);
-    const mod = await loadMigration(file);
-    await mod.up(sql);
-    await markApplied(file);
-    console.log(`✅ Applied: ${file}`);
-  }
+  const applied = await getAppliedMigrations();
+  const pending = files.filter((file) => !applied.has(file));
+  if (pending.length === 0) console.log('✅ No pending migrations.');
 }
 
-async function cmdDown(): Promise<void> {
+async function cmdDown(): Promise<boolean> {
   await ensureMigrationTable();
-  const applied = await getAppliedMigrations();
   const files = await discoverMigrations();
-  const appliedFiles = files.filter((f) => applied.has(f));
 
-  if (appliedFiles.length === 0) {
-    console.log('⚠️  No applied migrations to roll back.');
-    return;
-  }
+  return await withMigrationLock(async (tx) => {
+    const applied = await getAppliedMigrations(tx);
+    const appliedFiles = files.filter((file) => applied.has(file));
 
-  const last = appliedFiles[appliedFiles.length - 1]!;
-  console.log(`⬇️  Rolling back: ${last}`);
-  const mod = await loadMigration(last);
-  await mod.down(sql);
-  await markReverted(last);
-  console.log(`✅ Reverted: ${last}`);
+    if (appliedFiles.length === 0) {
+      console.log('⚠️  No applied migrations to roll back.');
+      return false;
+    }
+
+    const last = appliedFiles[appliedFiles.length - 1]!;
+    console.log(`⬇️  Rolling back: ${last}`);
+    const mod = await loadMigration(last);
+    await mod.down(tx);
+    await markReverted(last, tx);
+    console.log(`✅ Reverted: ${last}`);
+    return true;
+  });
 }
 
 async function cmdRefresh(): Promise<void> {
-  console.log('⚠️  REFRESH: Rolling back all migrations then re-applying...');
-  await ensureMigrationTable();
-  const applied = await getAppliedMigrations();
-  const files = await discoverMigrations();
-  const appliedFiles = files.filter((f) => applied.has(f)).reverse();
+  if (config.APP_ENV === 'production') {
+    throw new Error('migrate refresh is disabled in production');
+  }
 
-  for (const file of appliedFiles) {
-    console.log(`⬇️  Rolling back: ${file}`);
-    const mod = await loadMigration(file);
-    await mod.down(sql);
-    await markReverted(file);
+  console.log('⚠️  REFRESH: Rolling back all migrations then re-applying...');
+  while (await cmdDown()) {
+    // Roll back one atomic migration at a time.
   }
   await cmdUp();
 }
@@ -130,31 +130,34 @@ async function cmdRefresh(): Promise<void> {
 async function cmdCreate(name: string): Promise<void> {
   if (!name) {
     console.error('❌ Usage: bun run migrate create <name>');
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[^0-9]/g, '')
-    .slice(0, 14);
-  const filename = `${timestamp}_${name.toLowerCase().replace(/\s+/g, '_')}.ts`;
+
+  const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+  const normalizedName = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  if (!normalizedName) throw new Error('Migration name must contain letters or numbers');
+
+  const filename = `${timestamp}_${normalizedName}.ts`;
   const filePath = join(MIGRATIONS_DIR, filename);
+  const template = `import type { SQL, TransactionSQL } from 'bun';
 
-  const template = `import type { SQL } from 'bun';
+type MigrationExecutor = SQL | TransactionSQL;
 
-export async function up(sql: SQL): Promise<void> {
+export async function up(sql: MigrationExecutor): Promise<void> {
   // TODO: implement migration
-  await sql\`
-    -- your SQL here
-  \`;
 }
 
-export async function down(sql: SQL): Promise<void> {
+export async function down(sql: MigrationExecutor): Promise<void> {
   // TODO: implement rollback
-  await sql\`
-    -- your rollback SQL here
-  \`;
 }
 `;
+
   await Bun.write(filePath, template);
   console.log(`✅ Created migration: ${filename}`);
 }
@@ -170,17 +173,15 @@ async function cmdStatus(): Promise<void> {
     const status = applied.has(file) ? '✅ applied' : '⏳ pending';
     console.log(`  ${status}  ${basename(file)}`);
   }
-  if (files.length === 0) {
-    console.log('  (no migration files found)');
-  }
+  if (files.length === 0) console.log('  (no migration files found)');
   console.log('─────────────────────────────────────────\n');
 }
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
 
 const [command, ...args] = process.argv.slice(2);
 
 try {
+  assertSupportedDriver();
+
   switch (command) {
     case 'up':
       await cmdUp();
@@ -200,8 +201,8 @@ try {
     default:
       console.error(`❌ Unknown command: "${command}"`);
       console.error('Available: up | down | refresh | create <name> | status');
-      process.exit(1);
+      process.exitCode = 1;
   }
 } finally {
-  await sql.close();
+  await closeDbClient();
 }
