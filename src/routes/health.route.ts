@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { checkDatabaseHealth } from '@/database/health';
 import { sendSuccess, sendError } from '@/shared/http/response';
+import { isAcceptingTraffic } from '@/shared/lifecycle/state';
 
 export const healthRoute = new Hono();
 
@@ -22,6 +23,15 @@ healthRoute.get('/live', (c) => {
 
 // GET /health/ready
 healthRoute.get('/ready', async (c) => {
+  if (!isAcceptingTraffic()) {
+    return sendError(
+      c,
+      'SERVICE_DRAINING',
+      'Service is draining and not accepting new traffic',
+      503
+    );
+  }
+
   const dbHealth = await checkDatabaseHealth();
 
   if (!dbHealth.isHealthy) {

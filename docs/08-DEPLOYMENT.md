@@ -103,3 +103,23 @@ Worker concurrency harus diseimbangkan dengan:
 - expected job latency
 
 Jangan otomatis menyamakan worker concurrency dengan jumlah CPU.
+
+## Drain Before Stop
+
+Saat termination, instance terlebih dahulu berubah menjadi not-ready, menunggu `SHUTDOWN_DRAIN_DELAY_MS`, lalu HTTP listener dihentikan.
+
+Pastikan load balancer/orchestrator memiliki health check dan grace period yang konsisten dengan lifecycle tersebut.
+
+## Container Runtime Security
+
+App dan worker baseline:
+- non-root
+- no-new-privileges
+- all Linux capabilities dropped
+- read-only root filesystem
+- small `/tmp` tmpfs
+- bounded PID count
+
+Production runtime image hanya membawa package OS minimum dan compiled Bun binaries. Bun runtime hanya diperlukan pada build stage.
+
+CI harus membangun image production dan menjalankan liveness smoke test.

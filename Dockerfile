@@ -45,7 +45,17 @@ RUN bun run build
 # ─────────────────────────────────────────────────────────────────────────────
 # STAGE 3: PRODUCTION RUNTIME — Ultra-Slim Binary Container
 # ─────────────────────────────────────────────────────────────────────────────
-FROM base AS production
+FROM alpine:3.22 AS production
+
+ARG TZ
+RUN apk add --no-cache \
+    tzdata \
+    ca-certificates \
+    curl \
+    dumb-init \
+    libstdc++ \
+  && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
+  && echo "${TZ}" > /etc/timezone
 
 ARG IMAGE_VERSION=1.0.0
 ARG GIT_SHA=unknown

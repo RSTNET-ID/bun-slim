@@ -148,3 +148,20 @@ Dokumentasi:
 - `docs/14-OUTBOUND-HTTP-STANDARD.md`
 - `docs/15-METRICS-STANDARD.md`
 - `docs/16-PRODUCTION-HARDENING.md`
+
+## Identity, Lifecycle, and Container Safety
+
+Baseline tambahan:
+- tenant header membutuhkan authorization callback
+- rate limiter tidak mempercayai forwarded IP header secara default
+- readiness berubah 503 saat shutdown/drain dimulai
+- configurable drain propagation delay
+- production runtime image tidak lagi membawa Bun runtime
+- non-root + no-new-privileges + dropped capabilities
+- read-only root filesystem + bounded PID count
+- Docker image build dan liveness smoke test di CI
+
+Dokumentasi:
+- `docs/17-IDENTITY-TENANT-BOUNDARY.md`
+- `docs/18-DRAIN-READINESS-STANDARD.md`
+- `docs/19-CONTAINER-RUNTIME-HARDENING.md`
