@@ -1,23 +1,15 @@
 import type { MiddlewareHandler } from 'hono';
 import { UnauthorizedError } from '@/shared/errors';
+import type { AuthPrincipal } from '@/shared/types/context';
 
 /**
  * Auth Guard Middleware
  *
- * Memvalidasi Bearer token dari header Authorization.
- * Letakkan di route yang membutuhkan autentikasi.
- *
- * Contoh penggunaan:
- *   app.use('/api/v1/examples/*', authGuard({ verifyToken: myVerifyFn }))
- *
- * Production: ganti verifyToken dengan JWT verification atau call ke auth service.
+ * Validates a Bearer token through a service-provided verifier.
+ * The verifier is responsible for cryptographic/token validation and revocation policy.
  */
 export interface AuthGuardOptions {
-  /**
-   * Fungsi untuk memverifikasi token dan mengembalikan payload principal.
-   * Lempar error bila token tidak valid.
-   */
-  verifyToken: (token: string) => Promise<{ sub: string; roles?: string[] }>;
+  verifyToken: (token: string) => Promise<AuthPrincipal>;
 }
 
 export const authGuard = (options: AuthGuardOptions): MiddlewareHandler => {
@@ -28,16 +20,24 @@ export const authGuard = (options: AuthGuardOptions): MiddlewareHandler => {
       throw new UnauthorizedError('Missing or malformed Authorization header');
     }
 
-    const token = authHeader.slice(7);
+    const token = authHeader.slice(7).trim();
     if (!token) {
       throw new UnauthorizedError('Token is empty');
     }
 
-    const principal = await options.verifyToken(token);
+    let principal: AuthPrincipal;
+    try {
+      principal = await options.verifyToken(token);
+    } catch {
+      // Do not leak verifier/provider details to the caller.
+      throw new UnauthorizedError('Invalid or expired credentials');
+    }
 
-    // Simpan principal ke context agar handler bisa mengaksesnya
+    if (!principal || typeof principal.sub !== 'string' || principal.sub.trim().length === 0) {
+      throw new UnauthorizedError('Invalid authentication principal');
+    }
+
     c.set('principal', principal);
-
     await next();
   };
 };
