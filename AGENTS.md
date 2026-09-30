@@ -45,3 +45,20 @@ Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
 - Pertahankan request body limit dan graceful shutdown deadline kecuali business requirement mengharuskan perubahan.
 - Jangan mengaktifkan Bun development error page di staging/production.
 - High/critical production dependency advisory harus dianggap CI blocker kecuali ada documented security exception.
+
+## Identity and Tenant Trust
+
+- Jangan mempercayai tenant/company/account identifier dari header sebagai authorization.
+- `tenantContext()` harus memiliki authorization callback.
+- Jangan menggunakan X-Forwarded-For/X-Real-IP sebagai security/rate-limit key tanpa trusted proxy boundary yang eksplisit.
+
+## Lifecycle
+
+- Readiness harus gagal saat instance mulai draining.
+- Jangan mengubah liveness menjadi dependency health check.
+- Orchestrator grace period harus lebih panjang daripada drain delay + shutdown timeout.
+
+## Container Runtime
+
+- Production container harus non-root.
+- Pertahankan no-new-privileges, dropped capabilities, read-only root filesystem, bounded PID count, dan tmpfs kecil kecuali ada kebutuhan terukur.
