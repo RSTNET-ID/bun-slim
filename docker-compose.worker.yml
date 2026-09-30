@@ -1,0 +1,58 @@
+services:
+  app:
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["./worker"]
+    environment:
+      APP_ENV: development
+      SERVICE_NAME: example-service
+      LOG_LEVEL: info
+      DB_DRIVER: postgres
+      DATABASE_URL: postgres://user:password@postgres:5432/example_service
+      DB_POOL_MAX: 10
+      DB_PREPARE: "true"
+      WORKER_ENABLED: "true"
+      REDIS_URL: redis://redis:6379
+      WORKER_QUEUE_NAME: default
+      WORKER_QUEUE_PREFIX: queue
+      WORKER_CONCURRENCY: 2
+      WORKER_BLOCK_MS: 1000
+      WORKER_JOB_TIMEOUT_MS: 30000
+      WORKER_MAX_ATTEMPTS: 3
+      WORKER_RETRY_BACKOFF_MS: 1000
+      WORKER_STALE_AFTER_MS: 60000
+      WORKER_RECLAIM_INTERVAL_MS: 15000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  redis_data:
