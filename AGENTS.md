@@ -14,11 +14,12 @@ Sebelum mengubah kode:
 8. Hono hanya boleh berada di HTTP boundary.
 9. Business logic tidak boleh menerima `Hono Context`.
 10. PostgreSQL adalah database default, tetapi persistence layer tidak boleh mengunci domain/service ke PostgreSQL.
-11. Worker, bila diperlukan, menggunakan Redis sebagai backend queue/job.
-12. Service tanpa worker tidak wajib memakai Redis.
-13. Tambah atau update test untuk perubahan behavior.
-14. Update dokumentasi terkait architecture, API, data, security, observability, atau deployment.
-15. Perubahan architecture penting harus memiliki ADR.
+11. Worker, bila diperlukan, menggunakan Bun native RedisClient + Redis Streams consumer group sebagai baseline.
+12. Service tanpa worker tidak wajib memakai Redis; jangan memasang worker/Redis hanya demi keseragaman.
+13. Worker handler wajib memperlakukan delivery sebagai at-least-once dan menjaga operasi write tetap idempotent.
+14. Tambah atau update test untuk perubahan behavior.
+15. Update dokumentasi terkait architecture, API, data, security, observability, atau deployment.
+16. Perubahan architecture penting harus memiliki ADR.
 
 Dependency direction default:
 
