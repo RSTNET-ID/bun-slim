@@ -25,13 +25,9 @@ healthRoute.get('/ready', async (c) => {
   const dbHealth = await checkDatabaseHealth();
 
   if (!dbHealth.isHealthy) {
-    return sendError(
-      c,
-      'SERVICE_UNAVAILABLE',
-      'Database health check failed',
-      503,
-      { database: { status: 'down', error: dbHealth.error } }
-    );
+    return sendError(c, 'SERVICE_UNAVAILABLE', 'Database health check failed', 503, {
+      database: { status: 'down', error: dbHealth.error },
+    });
   }
 
   return sendSuccess(c, {

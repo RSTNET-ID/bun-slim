@@ -82,7 +82,8 @@ export function sendCursorPaginated<T extends object>(
   const hasMore = items.length > limit;
   const data = hasMore ? items.slice(0, limit) : items;
 
-  const nextCursor = hasMore ? cursorFn(data[data.length - 1]!) : null;
+  const lastItem = data[data.length - 1];
+  const nextCursor = hasMore && lastItem ? cursorFn(lastItem) : null;
 
   const pagination: CursorPaginationMeta = {
     next_cursor: nextCursor,

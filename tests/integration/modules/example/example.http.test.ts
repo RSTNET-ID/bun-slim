@@ -10,7 +10,6 @@ import { Hono } from 'hono';
 import { ExampleHandler } from '@/modules/example/example.handler';
 import { ExampleService } from '@/modules/example/example.service';
 import { ExampleRepository } from '@/modules/example/example.repository';
-import { exampleRoute } from '@/modules/example/example.route';
 import { globalErrorHandler } from '@/shared/middleware/error-handler';
 import { requestIdMiddleware } from '@/shared/middleware/request-id';
 

@@ -1,7 +1,11 @@
-import { type SQL } from 'bun';
+import type { SQL } from 'bun';
 import { getDbClient } from './client';
 
 export type TransactionContext = SQL;
+
+interface BunSqlTransaction {
+  begin<T>(cb: (tx: SQL) => Promise<T>): Promise<T>;
+}
 
 /**
  * Jalankan fungsi `fn` dalam satu database transaction.
@@ -17,10 +21,8 @@ export type TransactionContext = SQL;
  *     return result;
  *   });
  */
-export async function runTransaction<T>(
-  fn: (tx: TransactionContext) => Promise<T>
-): Promise<T> {
+export async function runTransaction<T>(fn: (tx: TransactionContext) => Promise<T>): Promise<T> {
   const sql = getDbClient();
-  // Bun SQL exposes `.begin()` for transactions
-  return await (sql as any).begin((tx: SQL) => fn(tx));
+  const txSql = sql as unknown as BunSqlTransaction;
+  return await txSql.begin((tx: SQL) => fn(tx));
 }

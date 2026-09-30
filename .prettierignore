@@ -1,0 +1,9 @@
+# Prettier Ignore
+node_modules/
+dist/
+bun.lock
+*.md
+*.json
+coverage/
+.husky/
+tests

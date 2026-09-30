@@ -15,7 +15,7 @@ logger.info(`🚀 Server running at http://localhost:${server.port}`, {
 
 let isShuttingDown = false;
 
-async function shutdown(signal: string) {
+async function shutdown(signal: string): Promise<void> {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
@@ -23,7 +23,7 @@ async function shutdown(signal: string) {
 
   try {
     // 1. Stop accepting new requests & stop HTTP server
-    server.stop();
+    await server.stop();
     logger.info('HTTP server stopped.');
 
     // 2. Close Database Pool
@@ -31,11 +31,16 @@ async function shutdown(signal: string) {
 
     logger.info('Graceful shutdown completed successfully.');
     process.exit(0);
-  } catch (error: any) {
-    logger.error('Error during graceful shutdown:', { error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Error during graceful shutdown:', { error: message });
     process.exit(1);
   }
 }
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM');
+});
+process.on('SIGINT', () => {
+  void shutdown('SIGINT');
+});

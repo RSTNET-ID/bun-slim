@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+# .husky/pre-commit
+# Dijalankan sebelum setiap commit.
+#
+# Urutan (commit batal jika salah satu gagal):
+#   1. bun audit      — cek vulnerability dependencies
+#   2. lint-staged    — eslint --fix + prettier --write + typecheck pada file staged
+#   3. bun test       — jalankan seluruh test suite
+
+set -e
+
+echo "🔍 [1/3] Auditing dependencies for vulnerabilities..."
+bun audit
+
+echo "🔧 [2/3] Linting and formatting staged files..."
+bunx lint-staged
+
+echo "🧪 [3/3] Running test suite..."
+bun test
+
+echo "✅ All pre-commit checks passed."

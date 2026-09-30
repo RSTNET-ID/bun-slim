@@ -1,4 +1,4 @@
-import type { MiddlewareHandler } from 'hono';
+import type { Context, MiddlewareHandler } from 'hono';
 import { logger } from '@/shared/logger';
 
 /**
@@ -16,7 +16,7 @@ export interface RateLimiterOptions {
   /** Maksimum request per window per IP. Default: 100 */
   max?: number;
   /** Key identifier selain IP. Dapat menggunakan header seperti X-Tenant-ID */
-  keyFn?: (c: any) => string;
+  keyFn?: (c: Context) => string;
 }
 
 interface RateEntry {

@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { ZodError } from 'zod';
 import { AppError } from '@/shared/errors';
 import { sendError } from '@/shared/http/response';
@@ -14,7 +15,7 @@ export const globalErrorHandler = (err: Error, c: Context) => {
       status: err.statusCode,
       details: err.details,
     });
-    return sendError(c, err.code, err.message, err.statusCode as any, err.details);
+    return sendError(c, err.code, err.message, err.statusCode as ContentfulStatusCode, err.details);
   }
 
   if (err instanceof ZodError) {

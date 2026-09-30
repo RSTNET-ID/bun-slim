@@ -92,7 +92,10 @@ export class ExampleRepository {
 
   // ── Find By ID with Lookup (JOIN category) ─────────────────────────────────
 
-  async findByIdWithLookup(id: string, executor?: TransactionContext): Promise<ExampleWithLookup | null> {
+  async findByIdWithLookup(
+    id: string,
+    executor?: TransactionContext
+  ): Promise<ExampleWithLookup | null> {
     if (this.useInMemory) {
       const item = this._store.get(id);
       if (!item) return null;
@@ -152,12 +155,18 @@ export class ExampleRepository {
       )
       RETURNING id, name, description, status, category_id, created_at, updated_at
     `) as unknown as ExampleItem[];
-    return rows[0]!;
+    const created = rows[0];
+    if (!created) throw new Error('Failed to insert example into database');
+    return created;
   }
 
   // ── Update ─────────────────────────────────────────────────────────────────
 
-  async update(id: string, data: UpdateExampleDTO, executor?: TransactionContext): Promise<ExampleItem | null> {
+  async update(
+    id: string,
+    data: UpdateExampleDTO,
+    executor?: TransactionContext
+  ): Promise<ExampleItem | null> {
     const existing = await this.findById(id, executor);
     if (!existing) return null;
 
@@ -200,9 +209,8 @@ export class ExampleRepository {
     const sql = executor || getDbClient();
     const result = (await sql`
       DELETE FROM examples WHERE id = ${id}
-    `) as unknown as { count: number };
-    // Bun SQL returns rowCount on DML
-    return (result as any).count !== 0;
+    `) as unknown as { count?: number };
+    return result.count !== 0;
   }
 }
 

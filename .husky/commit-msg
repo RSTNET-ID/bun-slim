@@ -1,0 +1,45 @@
+#!/usr/bin/env sh
+# .husky/commit-msg
+# Validasi format pesan commit menggunakan Conventional Commits.
+#
+# Format yang diterima:
+#   <type>(<scope>): <description>
+#
+# Contoh valid:
+#   feat(example): add cursor pagination
+#   fix(auth): handle expired token edge case
+#   chore: update dependencies
+#   docs(api): update endpoint description
+#
+# Type yang diizinkan:
+#   feat      — fitur baru
+#   fix       — perbaikan bug
+#   chore     — maintenance, dependency update, konfigurasi
+#   docs      — perubahan dokumentasi saja
+#   test      — penambahan atau perbaikan test
+#   refactor  — refactoring tanpa perubahan behavior
+#   perf      — peningkatan performa
+#   ci        — perubahan CI/CD pipeline
+#   build     — perubahan build system
+#   revert    — revert commit sebelumnya
+
+commit_msg_file="$1"
+commit_msg=$(cat "$commit_msg_file")
+
+# Regex pattern untuk Conventional Commits
+pattern='^(feat|fix|chore|docs|test|refactor|perf|ci|build|revert)(\(.+\))?: .{1,100}$'
+
+if ! echo "$commit_msg" | grep -qE "$pattern"; then
+  echo ""
+  echo "❌ Commit message tidak sesuai Conventional Commits format."
+  echo ""
+  echo "   Format  : <type>(<scope>): <description>"
+  echo "   Contoh  : feat(example): add cursor pagination"
+  echo ""
+  echo "   Type yang diizinkan:"
+  echo "   feat | fix | chore | docs | test | refactor | perf | ci | build | revert"
+  echo ""
+  echo "   Pesan Anda: $commit_msg"
+  echo ""
+  exit 1
+fi

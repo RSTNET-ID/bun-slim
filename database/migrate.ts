@@ -63,9 +63,7 @@ const MIGRATIONS_DIR = join(import.meta.dir, 'migrations');
 
 async function discoverMigrations(): Promise<string[]> {
   const files = await readdir(MIGRATIONS_DIR);
-  return files
-    .filter((f) => f.endsWith('.ts') && !f.startsWith('_'))
-    .sort();
+  return files.filter((f) => f.endsWith('.ts') && !f.startsWith('_')).sort();
 }
 
 async function loadMigration(filename: string): Promise<MigrationModule> {
@@ -134,7 +132,10 @@ async function cmdCreate(name: string): Promise<void> {
     console.error('❌ Usage: bun run migrate create <name>');
     process.exit(1);
   }
-  const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[^0-9]/g, '')
+    .slice(0, 14);
   const filename = `${timestamp}_${name.toLowerCase().replace(/\s+/g, '_')}.ts`;
   const filePath = join(MIGRATIONS_DIR, filename);
 
