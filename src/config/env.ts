@@ -75,20 +75,20 @@ export const envSchema = z
       mysql: ['mysql', 'mysql2'],
     };
 
-    if (env.APP_ENV === 'production') {
+    if (env.METRICS_ENABLED && !env.METRICS_TOKEN) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['METRICS_TOKEN'],
+        message: 'METRICS_TOKEN is required when metrics are enabled',
+      });
+    }
+
+    if (env.APP_ENV === 'staging' || env.APP_ENV === 'production') {
       if (env.EXAMPLE_ROUTES_ENABLED) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['EXAMPLE_ROUTES_ENABLED'],
-          message: 'Example routes must be disabled in production',
-        });
-      }
-
-      if (env.METRICS_ENABLED && !env.METRICS_TOKEN) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['METRICS_TOKEN'],
-          message: 'METRICS_TOKEN is required when metrics are enabled in production',
+          message: 'Example routes must be disabled in staging/production',
         });
       }
 
@@ -104,7 +104,7 @@ export const envSchema = z
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ['DATABASE_URL'],
-            message: 'DATABASE_URL uses placeholder/default credentials in production',
+            message: 'DATABASE_URL uses placeholder/default credentials in staging/production',
           });
         }
       } catch {
