@@ -31,6 +31,7 @@ const REQUIRED_FILES = [
   'docs/20-SERVICE-BOOTSTRAP.md',
   'docs/21-CORE-FREEZE.md',
   'docs/22-RELEASE-READINESS.md',
+  'docs/23-SECRET-LOGGING-STANDARD.md',
 ] as const;
 
 const REQUIRED_SCRIPTS = [
