@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/server.ts",
-    "build": "bun build --compile --minify ./src/server.ts --outfile dist/server",
+    "build": "bun run build:server && bun run build:worker",
     "start": "./dist/server",
     "start:dev": "bun src/server.ts",
     "route:list": "bun scripts/route-list.ts",
@@ -22,7 +22,10 @@
     "prepare": "husky",
     "test:unit": "bun test tests/unit",
     "test:contract": "bun test tests/contract",
-    "test:integration": "bun test tests/integration"
+    "test:integration": "bun test tests/integration",
+    "build:server": "bun build --compile --minify ./src/server.ts --outfile dist/server",
+    "build:worker": "bun build --compile --minify ./src/worker.ts --outfile dist/worker",
+    "worker:dev": "bun src/worker.ts"
   },
   "dependencies": {
     "hono": "^4.7.0",
