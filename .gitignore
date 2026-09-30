@@ -14,9 +14,7 @@ node_modules/
 dist/
 build/
 
-# Bun lockfile (keep bun.lockb, ignore bun.lock text format if generated)
-# bun.lockb is binary and should be committed
-# bun.lock is optional text alternative
+# Bun lockfile is committed for reproducible installs.
 
 # TypeScript cache
 *.tsbuildinfo
