@@ -18,4 +18,8 @@ bunx lint-staged
 echo "🧪 [3/3] Running test suite..."
 bun test
 
+# build
+echo "Build source"
+bun run build
+
 echo "✅ All pre-commit checks passed."
