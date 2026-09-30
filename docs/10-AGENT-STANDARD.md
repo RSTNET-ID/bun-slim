@@ -133,3 +133,33 @@ Task selesai jika:
 - logging cukup
 - security impact diperiksa
 - docs terkait diperbarui
+
+## Outbound Integration Agent
+
+Jika task menambahkan HTTP dependency:
+- gunakan shared outbound HTTP policy
+- tentukan logical dependency name
+- tentukan timeout
+- tentukan apakah retry aman
+- untuk POST/PATCH retry, wajib definisikan idempotency contract
+- test transient failure, timeout, dan cancellation bila relevan
+
+## Observability Agent
+
+Default:
+- structured logs
+- request ID
+- low-cardinality metrics bila metrics diaktifkan
+
+Jangan menambahkan OpenTelemetry stack hanya demi template. Tambahkan bila deployment memiliki collector/backend dan ownership yang jelas.
+
+## Production Hardening Agent
+
+Review:
+- Bun development mode
+- body size limit
+- idle timeout
+- shutdown deadline
+- security headers
+- reverse proxy trust assumptions
+- dependency vulnerability audit
