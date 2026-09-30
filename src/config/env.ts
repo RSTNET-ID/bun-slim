@@ -95,7 +95,14 @@ export const envSchema = z
       try {
         const databaseUrl = new URL(env.DATABASE_URL);
         const weakUsernames = new Set(['user', 'test', 'example', 'postgres']);
-        const weakPasswords = new Set(['password', 'changeme', 'secret', 'test', 'example', 'postgres']);
+        const weakPasswords = new Set([
+          'password',
+          'changeme',
+          'secret',
+          'test',
+          'example',
+          'postgres',
+        ]);
 
         if (
           weakUsernames.has(decodeURIComponent(databaseUrl.username).toLowerCase()) &&
