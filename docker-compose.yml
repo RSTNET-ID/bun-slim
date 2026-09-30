@@ -15,6 +15,7 @@ services:
       SERVER_IDLE_TIMEOUT_SECONDS: 15
       MAX_REQUEST_BODY_BYTES: 1048576
       SHUTDOWN_TIMEOUT_MS: 15000
+      SHUTDOWN_DRAIN_DELAY_MS: 1000
       SECURITY_HEADERS_ENABLED: "true"
       METRICS_ENABLED: "false"
       OUTBOUND_HTTP_TIMEOUT_MS: 5000
@@ -30,6 +31,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    pids_limit: 256
 
   postgres:
     image: postgres:16-alpine
