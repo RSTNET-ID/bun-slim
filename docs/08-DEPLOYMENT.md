@@ -7,18 +7,18 @@ Service harus:
 - non-root
 - health-checkable
 - graceful shutdown capable
-- tidak menyimpan persistent data di filesystem container
+- tidak menyimpan persistent business data di filesystem container
 
 ## Runtime Components
 
-Minimum HTTP-only service:
+HTTP-only service:
 
 ```text
 app
 postgres
 ```
 
-Jika membutuhkan worker:
+Worker-enabled service:
 
 ```text
 app
@@ -27,21 +27,79 @@ postgres
 redis
 ```
 
-App dan worker boleh berasal dari image yang sama dengan command/entrypoint berbeda.
+App dan worker berasal dari image yang sama:
+
+```text
+./server   -> HTTP process
+./worker   -> background worker process
+```
+
+Jangan menjalankan HTTP server dan worker loop di process yang sama. Lifecycle, scaling, resource limit, dan failure domain harus dapat diatur terpisah.
+
+## Docker Compose
+
+Core:
+
+```bash
+docker compose up --build
+```
+
+Worker overlay:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.worker.yml \
+  up --build
+```
+
+Redis tidak diekspos ke host pada baseline compose.
 
 ## Shutdown
 
-Tangani `SIGTERM` dan `SIGINT`.
-
-Urutan:
-1. stop accepting new work
-2. drain in-flight request/job
+HTTP:
+1. stop accepting new requests
+2. drain in-flight requests
 3. close DB pool
-4. close Redis connection
+4. exit
+
+Worker:
+1. stop consuming new jobs
+2. drain in-flight jobs
+3. close Redis
+4. close DB pool
 5. exit
+
+Pending Redis Stream message yang belum di-ACK dapat direclaim consumer lain setelah stale threshold.
 
 ## Database
 
 PostgreSQL default.
 
-Deployment config harus memungkinkan penggantian `DB_DRIVER` dan connection settings bila di kemudian hari service dipindahkan ke MySQL/MariaDB.
+Penggantian database harus terjadi di persistence boundary. Query/migration PostgreSQL-specific tidak harus dipaksa portable secara sintaksis.
+
+## Redis
+
+Worker pack menggunakan Bun native Redis client dan Redis Streams consumer groups.
+
+Production:
+- Redis tidak boleh exposed public
+- gunakan credential aplikasi dengan least privilege
+- pisahkan namespace environment/service
+- aktifkan persistence/HA sesuai criticality queue
+- monitor memory, pending entries, dead-letter stream, dan connection errors
+- TLS digunakan bila Redis melewati network yang tidak sepenuhnya trusted
+
+Queue dengan business-critical jobs tidak boleh bergantung pada ephemeral Redis tanpa recovery/persistence plan.
+
+## Resource Sizing
+
+Pisahkan resource limit app dan worker.
+
+Worker concurrency harus diseimbangkan dengan:
+- database pool
+- downstream/provider limits
+- CPU/memory
+- expected job latency
+
+Jangan otomatis menyamakan worker concurrency dengan jumlah CPU.
