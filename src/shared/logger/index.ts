@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { config } from '@/config';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
 
 export interface LogContext {
   request_id?: string;
@@ -13,43 +13,75 @@ export interface LogContext {
   [key: string]: unknown;
 }
 
-class Logger {
-  private serviceName: string;
-  private environment: string;
+const LEVEL_WEIGHT: Record<LogLevel, number> = {
+  fatal: 0,
+  error: 1,
+  warn: 2,
+  info: 3,
+  debug: 4,
+  trace: 5,
+};
 
-  constructor() {
-    this.serviceName = config.SERVICE_NAME;
-    this.environment = config.APP_ENV;
+class Logger {
+  private readonly serviceName = config.SERVICE_NAME;
+  private readonly environment = config.APP_ENV;
+  private readonly configuredLevel = config.LOG_LEVEL;
+
+  private isEnabled(level: LogLevel): boolean {
+    return LEVEL_WEIGHT[level] <= LEVEL_WEIGHT[this.configuredLevel];
   }
 
-  private formatMessage(level: LogLevel, message: string, context?: LogContext) {
-    const payload = {
+  private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
+    return JSON.stringify({
       timestamp: new Date().toISOString(),
       level,
       service: this.serviceName,
       environment: this.environment,
       message,
       ...context,
-    };
-    return JSON.stringify(payload);
+    });
   }
 
-  public info(message: string, context?: LogContext) {
-    console.log(this.formatMessage('info', message, context));
-  }
+  private write(level: LogLevel, message: string, context?: LogContext): void {
+    if (!this.isEnabled(level)) return;
 
-  public warn(message: string, context?: LogContext) {
-    console.warn(this.formatMessage('warn', message, context));
-  }
+    const payload = this.formatMessage(level, message, context);
 
-  public error(message: string, context?: LogContext) {
-    console.error(this.formatMessage('error', message, context));
-  }
-
-  public debug(message: string, context?: LogContext) {
-    if (config.LOG_LEVEL === 'debug') {
-      console.debug(this.formatMessage('debug', message, context));
+    if (level === 'fatal' || level === 'error') {
+      console.error(payload);
+      return;
     }
+
+    if (level === 'warn') {
+      console.warn(payload);
+      return;
+    }
+
+    console.log(payload);
+  }
+
+  fatal(message: string, context?: LogContext): void {
+    this.write('fatal', message, context);
+  }
+
+  error(message: string, context?: LogContext): void {
+    this.write('error', message, context);
+  }
+
+  warn(message: string, context?: LogContext): void {
+    this.write('warn', message, context);
+  }
+
+  info(message: string, context?: LogContext): void {
+    this.write('info', message, context);
+  }
+
+  debug(message: string, context?: LogContext): void {
+    this.write('debug', message, context);
+  }
+
+  trace(message: string, context?: LogContext): void {
+    this.write('trace', message, context);
   }
 }
 

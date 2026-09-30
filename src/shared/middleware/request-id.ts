@@ -1,13 +1,23 @@
 import type { MiddlewareHandler } from 'hono';
 
+const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
+
+function normalizeRequestId(value: string | undefined): string {
+  if (value && REQUEST_ID_PATTERN.test(value)) {
+    return value;
+  }
+
+  return `req_${crypto.randomUUID()}`;
+}
+
 export const requestIdMiddleware = (): MiddlewareHandler => {
   return async (c, next) => {
-    const existingRequestId = c.req.header('X-Request-ID');
-    const requestId = existingRequestId || `req_${crypto.randomUUID()}`;
+    const requestId = normalizeRequestId(c.req.header('X-Request-ID'));
 
     c.set('requestId', requestId);
-    c.res.headers.set('X-Request-ID', requestId);
 
     await next();
+
+    c.header('X-Request-ID', requestId);
   };
 };

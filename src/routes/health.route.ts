@@ -25,8 +25,10 @@ healthRoute.get('/ready', async (c) => {
   const dbHealth = await checkDatabaseHealth();
 
   if (!dbHealth.isHealthy) {
-    return sendError(c, 'SERVICE_UNAVAILABLE', 'Database health check failed', 503, {
-      database: { status: 'down', error: dbHealth.error },
+    // Detail error sudah dicatat server-side oleh checkDatabaseHealth().
+    // Jangan expose hostname, credential hint, atau driver detail ke client.
+    return sendError(c, 'SERVICE_UNAVAILABLE', 'Database dependency is unavailable', 503, {
+      database: { status: 'down' },
     });
   }
 
