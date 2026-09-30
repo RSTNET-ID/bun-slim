@@ -40,14 +40,18 @@ Dependency **tidak boleh** dibalik.
 ## 3. Input Validation
 
 - **Semua** input network wajib divalidasi dengan runtime schema (Zod).
+- **Struktur File**: Seluruh schema validasi Zod wajib diletakkan secara rapi dalam file terpisah dengan konvensi nama `*.validation.ts` per modul (misalnya `example.validation.ts`).
 - Validasi terjadi di **route middleware**, bukan di handler atau service.
 - Parse hasil validasi disimpan ke context (`c.set('body', parsed)`) agar handler tidak perlu parse ulang.
 - TypeScript type **bukan** validasi runtime.
 
 ```ts
+// ✅ Import dari file *.validation.ts
+import { createExampleSchema } from './example.validation';
+
 // ✅ Validasi di route middleware
 route.post('/', async (c, next) => {
-  c.set('body', createSchema.parse(await c.req.json()));
+  c.set('body', createExampleSchema.parse(await c.req.json()));
   await next();
 }, handler.create);
 
@@ -85,6 +89,7 @@ create = async (c: Context) => {
 | Konsep | Convention | Contoh |
 |---|---|---|
 | File | `kebab-case` | `example.service.ts` |
+| Validation Schema File | `<module>.validation.ts` | `example.validation.ts` |
 | Class | `PascalCase` | `ExampleService` |
 | Function/method | `camelCase` | `getById`, `createItem` |
 | Constant | `UPPER_SNAKE_CASE` | `MAX_RETRY` |
@@ -152,9 +157,10 @@ create = async (c: Context) => {
 - Middleware harus bersifat **stateless** kecuali ada alasan konkret (misal: rate limiter).
 - Middleware tidak boleh berisi business rule. Hanya cross-cutting concerns.
 - Urutan middleware di `app.ts`:
-  1. `requestIdMiddleware` (paling awal, selalu ada)
-  2. `loggerMiddleware`
-  3. domain middleware (auth, rate limit, tenant) di level route
+  1. `trimTrailingSlash()` (mengeliminasi masalah 404 akibat trailing slash)
+  2. `requestIdMiddleware` (paling awal untuk penjejakan log)
+  3. `loggerMiddleware`
+  4. domain middleware (auth, rate limit, tenant) di level route
 - Middleware yang membutuhkan data dari request harus menyimpan hasilnya ke context dengan `c.set()`.
 
 ---
@@ -193,3 +199,20 @@ create = async (c: Context) => {
 - Nama file: `<timestamp_14digit>_<deskripsi_singkat>.ts`.
 - Jangan ubah migration yang sudah diaplikasikan ke production. Buat migration baru.
 - Seed data untuk referensi (categories, config) masuk di migration, bukan di service.
+
+---
+
+## 14. Build & Binary Execution
+
+- **Wajib berupa Standalone Binary Bun**: Perintah build `bun run build` harus melakukan proses kompilasi native menjadi single standalone binary executable (`bun build --compile --minify ./src/server.ts --outfile dist/server`).
+- Output kompilasi diletakkan di dalam folder `dist/` dan di-ignore oleh `.gitignore`.
+- Container deployment (Dockerfile) harus mengkompilasi aplikasi melalui stage build dan menjalankan binary `./server` langsung pada runner image tanpa tergantung penafsiran TypeScript runtime saat boot.
+
+---
+
+## 15. Routing & Route Inspection
+
+- **Trailing Slash Normalization**: Seluruh request ke endpoint dengan atau tanpa trailing slash (misal `/health/` vs `/health`) harus berjalan konsisten tanpa mengembalikan 404. Gunakan `trimTrailingSlash()` dari `hono/trailing-slash` pada `app.ts`.
+- **Base Root Endpoint Handling**: Base path (seperti `/` dan `/api/v1`) wajib menyediakan handler informasi status/discovery ringan (misal mengembalikan `sendSuccess`) agar tidak mengembalikan 404 saat dipanggil oleh browser atau load balancer.
+- **Route Listing Tooling**: Wajib menyediakan script `bun route:list` (`bun scripts/route-list.ts`) yang memanfaatkan `inspectRoutes` dari `hono/dev` untuk menampilkan seluruh daftar route, method, dan middleware yang terdaftar di aplikasi secara jelas.
+

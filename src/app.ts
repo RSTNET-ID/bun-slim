@@ -1,10 +1,14 @@
 import { Hono } from 'hono';
+import { trimTrailingSlash } from 'hono/trailing-slash';
 import { requestIdMiddleware, loggerMiddleware, globalErrorHandler } from '@/shared/middleware';
 import { mainRouter } from '@/routes';
 import { sendError } from '@/shared/http/response';
 
 export function createApp(): Hono {
   const app = new Hono();
+
+  // Normalize trailing slashes (e.g. /health/ -> /health)
+  app.use('*', trimTrailingSlash());
 
   // Global Middleware
   app.use('*', requestIdMiddleware());

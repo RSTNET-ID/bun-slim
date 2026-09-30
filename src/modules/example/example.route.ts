@@ -1,4 +1,4 @@
-import { Hono, type Context } from 'hono';
+import { Hono } from 'hono';
 import type { AppEnv } from '@/shared/types/context';
 import { ExampleHandler } from './example.handler';
 import {
@@ -6,39 +6,12 @@ import {
   updateExampleSchema,
   exampleIdParamSchema,
   exampleListQuerySchema,
-} from './example.schema';
-import { ValidationError } from '@/shared/errors';
+} from './example.validation';
+import { parseBody, parseParam, parseQuery } from '@/shared/http';
 import type { CreateExampleDTO, UpdateExampleDTO } from './example.types';
 
 export const exampleRoute = new Hono<AppEnv>();
 const handler = new ExampleHandler();
-
-// ─── Helper validators ────────────────────────────────────────────────────────
-interface ParserSchema<T> {
-  parse(input: unknown): T;
-}
-
-async function parseBody<T>(c: Context<AppEnv>, schema: ParserSchema<T>): Promise<T> {
-  let json: unknown;
-  try {
-    json = await c.req.json();
-  } catch {
-    throw new ValidationError('Invalid or missing JSON body');
-  }
-  return schema.parse(json);
-}
-
-function parseParam<T>(c: Context<AppEnv>, schema: ParserSchema<T>): T {
-  return schema.parse(c.req.param());
-}
-
-function parseQuery<T>(c: Context<AppEnv>, schema: ParserSchema<T>): T {
-  const raw: Record<string, string | undefined> = {};
-  for (const [k, v] of Object.entries(c.req.query())) {
-    raw[k] = Array.isArray(v) ? v[0] : (v as string);
-  }
-  return schema.parse(raw);
-}
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 

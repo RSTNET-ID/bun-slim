@@ -1,31 +1,80 @@
-# Stage 1: Install dependencies
-FROM oven/bun:1.4-alpine AS deps
+# syntax=docker/dockerfile:1.7
+ARG BUN_VERSION=1.4.0
+ARG TZ=UTC
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 0: BASE — Alpine Bun Base + Timezone & Utilities
+# ─────────────────────────────────────────────────────────────────────────────
+FROM oven/bun:${BUN_VERSION}-alpine AS base
+
+ARG TZ
+ENV TZ=${TZ}
+
+RUN apk add --no-cache \
+    tzdata \
+    ca-certificates \
+    curl \
+    dumb-init \
+  && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
+  && echo "${TZ}" > /etc/timezone
+
 WORKDIR /app
 
-# Copy lockfile dan package manifest terlebih dahulu untuk layer caching optimal.
-# Layer ini hanya di-rebuild bila package.json atau bun.lock berubah.
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 1: DEPS — Install Dependencies with Cache Layering
+# ─────────────────────────────────────────────────────────────────────────────
+FROM base AS deps
+
 COPY package.json bun.lock* ./
-RUN bun install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    HUSKY=0 bun install --frozen-lockfile
 
-# Stage 2: Runtime image
-FROM oven/bun:1.4-alpine AS runner
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 2: BUILDER — Typecheck & Compile Standalone Bun Binary
+# ─────────────────────────────────────────────────────────────────────────────
+FROM deps AS builder
+
+COPY src/ ./src/
+COPY database/ ./database/
+COPY scripts/ ./scripts/
+COPY tsconfig.json eslint.config.js ./
+
+RUN bun run typecheck
+RUN bun run build
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 3: PRODUCTION RUNTIME — Ultra-Slim Binary Container
+# ─────────────────────────────────────────────────────────────────────────────
+FROM base AS production
+
+ARG IMAGE_VERSION=1.0.0
+ARG GIT_SHA=unknown
+ARG BUILD_DATE=unknown
+
+LABEL org.opencontainers.image.title="Bun Hono Microservice Starter" \
+      org.opencontainers.image.description="High-performance Bun + Hono Microservice" \
+      org.opencontainers.image.vendor="RST" \
+      org.opencontainers.image.version="${IMAGE_VERSION}" \
+      org.opencontainers.image.revision="${GIT_SHA}" \
+      org.opencontainers.image.created="${BUILD_DATE}"
+
 WORKDIR /app
-
 ENV NODE_ENV=production
 
-# Copy dependencies dari stage deps
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/package.json ./
+# Security: Ensure dedicated non-root user/group ownership
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+  && chown -R appuser:appgroup /app
 
-# Copy source code
-COPY src/ ./src/
+# Copy compiled standalone executable and database assets from builder
+COPY --from=builder --chown=appuser:appgroup /app/dist/server ./server
+COPY --from=builder --chown=appuser:appgroup /app/database/ ./database/
 
-# Security: jalankan sebagai non-root user bawaan oven/bun
-USER bun
+USER appuser
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:3000/health/live || exit 1
+  CMD curl -fsS http://127.0.0.1:3000/health/live || exit 1
 
-CMD ["bun", "src/server.ts"]
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["./server"]

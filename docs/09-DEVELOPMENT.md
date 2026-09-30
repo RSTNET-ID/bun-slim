@@ -5,6 +5,7 @@
 ```bash
 bun install
 bun run dev
+bun route:list
 bun test
 bun run build
 ```

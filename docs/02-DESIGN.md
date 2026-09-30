@@ -25,7 +25,7 @@ src/
 │       ├── example.handler.ts
 │       ├── example.service.ts
 │       ├── example.repository.ts
-│       ├── example.schema.ts
+│       ├── example.validation.ts
 │       └── example.types.ts
 ├── shared/
 │   ├── errors/

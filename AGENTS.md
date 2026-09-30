@@ -6,6 +6,7 @@ Sebelum mengubah kode:
 1. Baca `docs/00-PROJECT.md`.
 2. Baca `docs/01-ARCHITECTURE.md`.
 3. Baca `docs/02-DESIGN.md`.
+4. Baca `docs/13-CODING-RULES.md`.
 4. Baca dokumen yang berkaitan dengan task.
 5. Inspeksi implementasi existing sebelum mengubah struktur.
 6. Pertahankan API/data contract kecuali perubahan breaking memang diminta.

@@ -1,36 +1,39 @@
-# Dependencies
-node_modules/
-
-# Git
+# 1. Version Control & Metadata
 .git/
 .gitignore
+.github/
 
-# Environment variables
+# 2. Dependencies & Build Artifacts
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# 3. Environment & Local Secrets
 .env
-.env.local
-.env.*.local
+.env.*
+*.pem
+*.key
 
-# Dev documentation
+# 4. Documentation & Test Suites
 docs/
-.specstory/
+tests/
+*.md
+AGENTS.md
 
-# Logs
+# 5. Local Storage & Backups
+tmp/
+temp/
+postgres_data/
+redis_data/
+
+# 6. Logs & Debug Artifacts
 *.log
 logs/
-
-# IDE / Editor
+coverage/
+.specstory/
 .vscode/
 .idea/
-
-# Test
-coverage/
-
-# Bun cache
 .bun/
-
-# OS Files
 .DS_Store
 Thumbs.db
-
-# Readme
-README.md

@@ -28,6 +28,16 @@ cp .env.example .env
 bun run dev
 ```
 
+### List Routes
+```bash
+bun route:list
+```
+
+### Build Binary
+```bash
+bun run build
+```
+
 ### Run Tests
 ```bash
 bun test
