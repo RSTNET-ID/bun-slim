@@ -34,3 +34,19 @@ Hak akses minimum sesuai schema/table yang dimiliki service.
 Redis worker credential harus terpisah dari credential administratif.
 
 Jika Redis hanya dipakai internal, jangan expose ke internet/public interface.
+
+## HTTP Runtime
+
+Server baseline membatasi request body dan mengaktifkan API security headers.
+
+Jangan menonaktifkan limit/header hanya untuk menyelesaikan masalah integrasi tanpa memahami exposure yang dibuka.
+
+## Outbound Requests
+
+Retry POST/PATCH membutuhkan Idempotency-Key.
+
+Jangan memasukkan raw URL/query atau credential ke retry/error log.
+
+## Dependency Supply Chain
+
+CI menjalankan production dependency audit untuk severity high/critical.
