@@ -4,6 +4,8 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 // ─── Success Response ─────────────────────────────────────────────────────────
 
 export interface SuccessResponse<T> {
+  success: true;
+  responded_at: string;
   data: T;
 }
 
@@ -41,7 +43,10 @@ export interface CursorPaginatedResponse<T> {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function sendSuccess<T>(c: Context, data: T, status: ContentfulStatusCode = 200) {
-  return c.json<SuccessResponse<T>>({ data }, status);
+  return c.json<SuccessResponse<T>>(
+    { success: true, responded_at: new Date().toISOString(), data },
+    status
+  );
 }
 
 export function sendError(
