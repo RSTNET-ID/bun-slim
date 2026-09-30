@@ -18,10 +18,13 @@ export function redactLogValue(value: unknown, key?: string, seen = new WeakSet<
     value === null ||
     value === undefined ||
     typeof value === 'number' ||
-    typeof value === 'boolean' ||
-    typeof value === 'bigint'
+    typeof value === 'boolean'
   ) {
     return value;
+  }
+
+  if (typeof value === 'bigint') {
+    return value.toString();
   }
 
   if (value instanceof Error) {
@@ -36,16 +39,18 @@ export function redactLogValue(value: unknown, key?: string, seen = new WeakSet<
     return value.toISOString();
   }
 
-  if (Array.isArray(value)) {
-    return value.map((item) => redactLogValue(item, undefined, seen));
-  }
-
   if (typeof value === 'object') {
     if (seen.has(value)) {
       return '[Circular]';
     }
 
     seen.add(value);
+
+    if (Array.isArray(value)) {
+      const output = value.map((item) => redactLogValue(item, undefined, seen));
+      seen.delete(value);
+      return output;
+    }
 
     const output: Record<string, unknown> = {};
     for (const [entryKey, entryValue] of Object.entries(value)) {
