@@ -18,10 +18,11 @@ alpine
   -> tzdata
   -> curl
   -> dumb-init
+  -> libstdc++
   -> compiled binaries
 ```
 
-Ini mengurangi runtime package surface tanpa mengorbankan HTTPS CA bundle, timezone support, health check, atau PID 1 handling.
+Ini mengurangi runtime package surface tanpa mengorbankan HTTPS CA bundle, timezone support, health check, PID 1 handling, atau library C++ runtime yang masih dibutuhkan compiled Bun binary.
 
 ## Non-Root
 
