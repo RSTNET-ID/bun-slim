@@ -18,7 +18,10 @@ export class RedisStreamQueue {
   readonly deadLetterKey: string;
   readonly groupName: string;
 
-  constructor(private readonly redis: RedisClient, options: RedisStreamQueueOptions = {}) {
+  constructor(
+    private readonly redis: RedisClient,
+    options: RedisStreamQueueOptions = {}
+  ) {
     const base = `${config.WORKER_QUEUE_PREFIX}:${config.SERVICE_NAME}:${config.WORKER_QUEUE_NAME}`;
     this.streamKey = options.streamKey ?? `${base}:stream`;
     this.deadLetterKey = options.deadLetterKey ?? `${base}:dead`;
@@ -27,13 +30,7 @@ export class RedisStreamQueue {
 
   async ensureGroup(): Promise<void> {
     try {
-      await this.redis.send('XGROUP', [
-        'CREATE',
-        this.streamKey,
-        this.groupName,
-        '0',
-        'MKSTREAM',
-      ]);
+      await this.redis.send('XGROUP', ['CREATE', this.streamKey, this.groupName, '0', 'MKSTREAM']);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       if (!message.includes('BUSYGROUP')) throw error;
@@ -41,12 +38,7 @@ export class RedisStreamQueue {
   }
 
   async enqueue(job: JobEnvelope): Promise<string> {
-    const id = await this.redis.send('XADD', [
-      this.streamKey,
-      '*',
-      'job',
-      JSON.stringify(job),
-    ]);
+    const id = await this.redis.send('XADD', [this.streamKey, '*', 'job', JSON.stringify(job)]);
 
     return String(id);
   }
