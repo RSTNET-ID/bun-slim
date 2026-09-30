@@ -2,6 +2,7 @@ import { app } from '@/app';
 import { config } from '@/config';
 import { logger } from '@/shared/logger';
 import { closeDbClient } from '@/database/client';
+import { markDraining } from '@/shared/lifecycle/state';
 
 const server = Bun.serve({
   hostname: config.SERVER_HOST,
@@ -24,6 +25,15 @@ async function shutdown(signal: string): Promise<void> {
   isShuttingDown = true;
 
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
+
+  markDraining();
+
+  if (config.SHUTDOWN_DRAIN_DELAY_MS > 0) {
+    logger.info('Service marked unready; waiting before closing listener', {
+      drain_delay_ms: config.SHUTDOWN_DRAIN_DELAY_MS,
+    });
+    await Bun.sleep(config.SHUTDOWN_DRAIN_DELAY_MS);
+  }
 
   const forceStopTimer = setTimeout(() => {
     logger.error('Graceful shutdown deadline exceeded; forcing active connections closed', {
