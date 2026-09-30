@@ -50,3 +50,17 @@ Jangan memasukkan raw URL/query atau credential ke retry/error log.
 ## Dependency Supply Chain
 
 CI menjalankan production dependency audit untuk severity high/critical.
+
+## Tenant Trust Boundary
+
+Tenant/company/account identifier dari client adalah requested scope, bukan bukti authorization.
+
+Gunakan authenticated principal + explicit tenant authorization sebelum menyimpan tenant context.
+
+## Proxy Headers
+
+Jangan mempercayai `X-Forwarded-For` atau `X-Real-IP` untuk authorization/rate limiting bila request dapat mencapai service tanpa trusted proxy yang mengontrol header tersebut.
+
+## Container Runtime
+
+Production app/worker dijalankan non-root dengan no-new-privileges, capability drop, read-only root filesystem, dan bounded PID count.
