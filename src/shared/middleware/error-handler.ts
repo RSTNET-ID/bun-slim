@@ -15,7 +15,13 @@ export const globalErrorHandler = (err: Error, c: Context) => {
       status: err.statusCode,
       details: err.details,
     });
-    return sendError(c, err.code, err.message, err.statusCode as ContentfulStatusCode, err.details);
+    return sendError(
+      c,
+      err.code,
+      err.message,
+      err.statusCode as ContentfulStatusCode,
+      err.exposeDetails ? err.details : undefined
+    );
   }
 
   if (err instanceof ZodError) {
