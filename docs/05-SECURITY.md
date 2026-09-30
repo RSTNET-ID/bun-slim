@@ -64,3 +64,36 @@ Jangan mempercayai `X-Forwarded-For` atau `X-Real-IP` untuk authorization/rate l
 ## Container Runtime
 
 Production app/worker dijalankan non-root dengan no-new-privileges, capability drop, read-only root filesystem, dan bounded PID count.
+
+
+## Reference Routes
+
+Module/example CRUD hanya untuk development/reference. Staging dan production menolak `EXAMPLE_ROUTES_ENABLED=true`.
+
+Jangan membawa route contoh ke service turunan tanpa auth/authorization yang nyata.
+
+## Metrics
+
+Jika metrics diaktifkan, `METRICS_TOKEN` wajib tersedia.
+
+Bearer token metrics adalah application-level control tambahan. Production tetap sebaiknya membatasi `/metrics` ke monitoring/private network.
+
+## Authentication Verifier
+
+Implementasi `verifyToken` milik service harus memvalidasi sesuai jenis credential, misalnya untuk JWT:
+- signature
+- allowed algorithm
+- issuer
+- audience
+- expiration / not-before
+- revocation/session state bila desain memerlukannya
+
+Verifier failure tidak boleh membocorkan detail parser/provider ke client.
+
+## SSRF / Outbound Destination
+
+Base URL provider/internal API harus berasal dari trusted configuration.
+
+Jangan meneruskan URL/hostname dari input user langsung ke `fetchWithPolicy()`.
+
+Jika business flow memang memilih destination berdasarkan input, gunakan explicit allowlist dan blok destination internal/metadata yang tidak sah.
