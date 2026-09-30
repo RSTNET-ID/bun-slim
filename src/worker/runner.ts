@@ -1,7 +1,7 @@
 import { config } from '@/config';
 import { logger } from '@/shared/logger';
 import type { JobEnvelope, JobHandlerRegistry } from './job';
-import { RedisStreamQueue, type RedisStreamMessage } from './queue';
+import type { RedisStreamMessage, RedisStreamQueue } from './queue';
 
 export interface WorkerRunnerOptions {
   workerId: string;
@@ -98,15 +98,13 @@ export class WorkerRunner {
     if (this.stopping) return Promise.resolve(false);
 
     return new Promise((resolve) => {
-      let timer: ReturnType<typeof setTimeout>;
-
       const wake = () => {
         clearTimeout(timer);
         this.stopWaiters.delete(wake);
         resolve(false);
       };
 
-      timer = setTimeout(() => {
+      const timer = setTimeout(() => {
         this.stopWaiters.delete(wake);
         resolve(true);
       }, ms);
