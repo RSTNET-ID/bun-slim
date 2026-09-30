@@ -32,21 +32,28 @@ describe('log redaction', () => {
     expect(result?.dependency).toBe('postgres://[REDACTED]@db.internal:5432/app');
   });
 
-  it('handles arrays and circular objects', () => {
+  it('handles arrays, bigint, and circular values', () => {
     const circular: Record<string, unknown> = { token: 'abc' };
     circular.self = circular;
 
+    const circularArray: unknown[] = [];
+    circularArray.push(circularArray);
+
     const result = redactLogContext({
       items: [{ clientSecret: 'secret', value: 1 }],
+      large_id: 9007199254740993n,
       circular,
+      circularArray,
     });
 
     expect(result).toEqual({
       items: [{ clientSecret: '[REDACTED]', value: 1 }],
+      large_id: '9007199254740993',
       circular: {
         token: '[REDACTED]',
         self: '[Circular]',
       },
+      circularArray: ['[Circular]'],
     });
   });
 });
