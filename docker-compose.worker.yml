@@ -1,3 +1,4 @@
+# DEVELOPMENT-ONLY worker overlay. Production must inject real secrets and network policy.
 services:
   app:
     environment:
