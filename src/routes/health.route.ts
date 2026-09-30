@@ -24,7 +24,12 @@ healthRoute.get('/live', (c) => {
 // GET /health/ready
 healthRoute.get('/ready', async (c) => {
   if (!isAcceptingTraffic()) {
-    return sendError(c, 'SERVICE_DRAINING', 'Service is draining and not accepting new traffic', 503);
+    return sendError(
+      c,
+      'SERVICE_DRAINING',
+      'Service is draining and not accepting new traffic',
+      503
+    );
   }
 
   const dbHealth = await checkDatabaseHealth();
