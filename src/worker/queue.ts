@@ -95,7 +95,14 @@ export class RedisStreamQueue {
 
   async ack(messageId: string): Promise<void> {
     await this.redis.send('XACK', [this.streamKey, this.groupName, messageId]);
-    await this.redis.send('XDEL', [this.streamKey, messageId]);
+
+    // XACK is the delivery boundary. XDEL is only stream housekeeping and must
+    // never turn an already-successful job into a retry if cleanup fails.
+    try {
+      await this.redis.send('XDEL', [this.streamKey, messageId]);
+    } catch {
+      // Acknowledged entries can be cleaned by normal Redis maintenance later.
+    }
   }
 
   async retry(
