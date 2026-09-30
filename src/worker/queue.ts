@@ -145,6 +145,14 @@ function extractMessages(response: unknown): RedisStreamMessage[] {
     return messages;
   }
 
+  if (response && typeof response === 'object' && !Array.isArray(response)) {
+    const messages: RedisStreamMessage[] = [];
+    for (const value of Object.values(response as Record<string, unknown>)) {
+      messages.push(...parseMessageList(value));
+    }
+    return messages;
+  }
+
   if (!Array.isArray(response)) return [];
 
   const messages: RedisStreamMessage[] = [];
