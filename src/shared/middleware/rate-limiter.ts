@@ -14,8 +14,9 @@ export interface RateLimiterOptions {
   /** Maksimum request per window per key. Default: 100 */
   max?: number;
   /**
-   * Key identifier. Untuk production sebaiknya diberikan secara eksplisit,
-   * misalnya principal, tenant ID, atau IP yang SUDAH dinormalisasi trusted proxy.
+   * Key identifier. Untuk public traffic sebaiknya diberikan secara eksplisit.
+   * Jangan membaca X-Forwarded-For/X-Real-IP kecuali reverse proxy trust boundary
+   * benar-benar dikendalikan oleh deployment.
    */
   keyFn?: (c: Context) => string;
 }
@@ -42,11 +43,9 @@ export const rateLimiter = (options: RateLimiterOptions = {}): MiddlewareHandler
       nextCleanupAt = now + windowMs;
     }
 
-    const key =
-      options.keyFn?.(c) ??
-      c.req.header('x-real-ip') ??
-      c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
-      'unknown';
+    const principal = c.get('principal') as { sub?: string } | undefined;
+    const tenantId = c.get('tenantId') as string | undefined;
+    const key = options.keyFn?.(c) ?? principal?.sub ?? tenantId ?? 'anonymous';
 
     const current = store.get(key);
 
