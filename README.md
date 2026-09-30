@@ -93,3 +93,37 @@ database/
 ```
 
 Lihat `docs/` dan `AGENTS.md` untuk standar architecture, database, security, testing, deployment, dan coding-agent.
+
+## Optional Redis Worker
+
+Core starter tidak membutuhkan Redis.
+
+Bila service membutuhkan background job, tersedia optional worker pack berbasis Bun native Redis client + Redis Streams.
+
+Build menghasilkan dua binary:
+
+```text
+dist/server
+dist/worker
+```
+
+Jalankan worker lokal:
+
+```bash
+WORKER_ENABLED=true \
+REDIS_URL=redis://127.0.0.1:6379 \
+bun run worker:dev
+```
+
+Compose dengan Redis + worker:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.worker.yml \
+  up --build
+```
+
+Register job handler di `src/worker/registry.ts` dan enqueue melalui `@/worker/producer`.
+
+Lihat `docs/12-WORKER-REDIS-STANDARD.md` untuk delivery semantics, retry, dead-letter, stale reclaim, idempotency, dan graceful shutdown.
