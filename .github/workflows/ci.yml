@@ -121,3 +121,39 @@ jobs:
 
       - name: Redis integration tests
         run: bun run test:integration
+
+  container-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Compose
+        run: |
+          docker compose -f docker-compose.yml config >/dev/null
+          docker compose -f docker-compose.yml -f docker-compose.worker.yml config >/dev/null
+
+      - name: Build production image
+        run: docker build -t bun-slim:ci .
+
+      - name: Verify non-root runtime user
+        run: |
+          uid="$(docker run --rm --entrypoint id bun-slim:ci -u)"
+          test "$uid" != "0"
+
+      - name: Smoke test liveness
+        run: |
+          docker run -d --name bun-slim-ci             -p 127.0.0.1:3000:3000             -e APP_ENV=test             -e DATABASE_URL=postgres://user:password@127.0.0.1:5432/unused             bun-slim:ci
+
+          trap 'docker rm -f bun-slim-ci >/dev/null 2>&1 || true' EXIT
+
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:3000/health/live >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs bun-slim-ci
+          exit 1
