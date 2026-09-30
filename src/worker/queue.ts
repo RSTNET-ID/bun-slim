@@ -18,10 +18,7 @@ export class RedisStreamQueue {
   readonly deadLetterKey: string;
   readonly groupName: string;
 
-  constructor(
-    private readonly redis: RedisClient,
-    options: RedisStreamQueueOptions = {}
-  ) {
+  constructor(private readonly redis: RedisClient, options: RedisStreamQueueOptions = {}) {
     const base = `${config.WORKER_QUEUE_PREFIX}:${config.SERVICE_NAME}:${config.WORKER_QUEUE_NAME}`;
     this.streamKey = options.streamKey ?? `${base}:stream`;
     this.deadLetterKey = options.deadLetterKey ?? `${base}:dead`;
@@ -54,10 +51,7 @@ export class RedisStreamQueue {
     return String(id);
   }
 
-  async read(
-    consumerName: string,
-    blockMs: number
-  ): Promise<RedisStreamMessage | null> {
+  async read(consumerName: string, blockMs: number): Promise<RedisStreamMessage | null> {
     const response = await this.redis.send('XREADGROUP', [
       'GROUP',
       this.groupName,
@@ -105,18 +99,12 @@ export class RedisStreamQueue {
     }
   }
 
-  async retry(
-    message: RedisStreamMessage,
-    job: JobEnvelope
-  ): Promise<void> {
+  async retry(message: RedisStreamMessage, job: JobEnvelope): Promise<void> {
     await this.enqueue(job);
     await this.ack(message.id);
   }
 
-  async deadLetter(
-    message: RedisStreamMessage,
-    reason: string
-  ): Promise<void> {
+  async deadLetter(message: RedisStreamMessage, reason: string): Promise<void> {
     await this.redis.send('XADD', [
       this.deadLetterKey,
       '*',
