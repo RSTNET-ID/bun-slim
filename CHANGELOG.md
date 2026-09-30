@@ -20,6 +20,15 @@ Format mengikuti semantic versioning.
 - dependency audit and release-readiness checks
 - recursive structured-log secret redaction
 
+### Security hardening
+- reference CRUD routes are disabled outside development/test
+- enabled metrics require bearer authentication
+- auth verifier failures fail closed to generic 401 responses
+- internal AppError details are hidden by default
+- staging/production reject known placeholder database credentials
+- GitHub Actions are pinned to immutable commits
+- final production security review added
+
 ### Policy
 - core is feature-frozen after Phase 12
 - additional infrastructure/framework capabilities should be service-specific or optional packs unless a proven core requirement exists
