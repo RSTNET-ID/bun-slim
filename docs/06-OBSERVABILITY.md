@@ -43,4 +43,12 @@ Jika worker digunakan, minimal log:
 - success/failure
 - error_code
 
-Metrics/tracing dapat ditambahkan kemudian sebagai optional pack.
+Metrics Prometheus-compatible tersedia sebagai optional baseline melalui `METRICS_ENABLED=true`.
+
+Baseline metrics:
+- HTTP requests/in-flight/duration
+- outbound HTTP attempts/duration
+
+Labels harus bounded dan low-cardinality. Raw path, URL, request ID, tenant ID, dan transaction ID tidak boleh menjadi baseline metric label.
+
+Tracing/OpenTelemetry tetap optional dan hanya ditambahkan bila collector/backend serta operational ownership tersedia.
