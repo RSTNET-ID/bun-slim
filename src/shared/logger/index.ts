@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import { config } from '@/config';
+import { redactLogContext } from './redact';
 
 export type LogLevel = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
 
@@ -32,13 +33,15 @@ class Logger {
   }
 
   private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
+    const safeContext = redactLogContext(context);
+
     return JSON.stringify({
       timestamp: new Date().toISOString(),
       level,
       service: this.serviceName,
       environment: this.environment,
       message,
-      ...context,
+      ...safeContext,
     });
   }
 

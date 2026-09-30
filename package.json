@@ -26,7 +26,8 @@
     "build:server": "bun build --compile --minify ./src/server.ts --outfile dist/server",
     "build:worker": "bun build --compile --minify ./src/worker.ts --outfile dist/worker",
     "worker:dev": "bun src/worker.ts",
-    "audit:prod": "bun audit --prod --audit-level=high"
+    "audit:prod": "bun audit --prod --audit-level=high",
+    "release:check": "bun scripts/release-check.ts"
   },
   "dependencies": {
     "hono": "^4.7.0",

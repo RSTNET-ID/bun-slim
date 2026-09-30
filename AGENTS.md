@@ -7,19 +7,19 @@ Sebelum mengubah kode:
 2. Baca `docs/01-ARCHITECTURE.md`.
 3. Baca `docs/02-DESIGN.md`.
 4. Baca `docs/13-CODING-RULES.md`.
-4. Baca dokumen yang berkaitan dengan task.
-5. Inspeksi implementasi existing sebelum mengubah struktur.
-6. Pertahankan API/data contract kecuali perubahan breaking memang diminta.
-7. Jangan menambahkan dependency/infrastruktur tanpa kebutuhan konkret.
-8. Hono hanya boleh berada di HTTP boundary.
-9. Business logic tidak boleh menerima `Hono Context`.
-10. PostgreSQL adalah database default, tetapi persistence layer tidak boleh mengunci domain/service ke PostgreSQL.
-11. Worker, bila diperlukan, menggunakan Bun native RedisClient + Redis Streams consumer group sebagai baseline.
-12. Service tanpa worker tidak wajib memakai Redis; jangan memasang worker/Redis hanya demi keseragaman.
-13. Worker handler wajib memperlakukan delivery sebagai at-least-once dan menjaga operasi write tetap idempotent.
-14. Tambah atau update test untuk perubahan behavior.
-15. Update dokumentasi terkait architecture, API, data, security, observability, atau deployment.
-16. Perubahan architecture penting harus memiliki ADR.
+5. Baca dokumen yang berkaitan dengan task.
+6. Inspeksi implementasi existing sebelum mengubah struktur.
+7. Pertahankan API/data contract kecuali perubahan breaking memang diminta.
+8. Jangan menambahkan dependency/infrastruktur tanpa kebutuhan konkret.
+9. Hono hanya boleh berada di HTTP boundary.
+10. Business logic tidak boleh menerima `Hono Context`.
+11. PostgreSQL adalah database default, tetapi persistence layer tidak boleh mengunci domain/service ke PostgreSQL.
+12. Worker, bila diperlukan, menggunakan Bun native RedisClient + Redis Streams consumer group sebagai baseline.
+13. Service tanpa worker tidak wajib memakai Redis; jangan memasang worker/Redis hanya demi keseragaman.
+14. Worker handler wajib memperlakukan delivery sebagai at-least-once dan menjaga operasi write tetap idempotent.
+15. Tambah atau update test untuk perubahan behavior.
+16. Update dokumentasi terkait architecture, API, data, security, observability, atau deployment.
+17. Perubahan architecture penting harus memiliki ADR.
 
 Dependency direction default:
 
@@ -62,3 +62,17 @@ Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
 
 - Production container harus non-root.
 - Pertahankan no-new-privileges, dropped capabilities, read-only root filesystem, bounded PID count, dan tmpfs kecil kecuali ada kebutuhan terukur.
+
+
+## Secret and Logging
+
+- Jangan pernah sengaja mengirim secret ke logger; redaction adalah safety net, bukan pola penggunaan.
+- Jangan log seluruh `process.env`, provider config, credential object, Authorization, cookie, token, password, DB/Redis URL credential, atau private key.
+- Pertahankan recursive logger redaction dan test coverage-nya.
+
+## Core Freeze
+
+- Setelah Phase 12, core dianggap feature-complete.
+- Perubahan core baru harus berupa correctness/security/reliability fix, compatibility update, complexity reduction, atau proven production failure mode.
+- ORM, OpenTelemetry, Swagger generator, broker, cache abstraction, circuit breaker framework, scheduler, object-storage SDK, email, dan websocket tetap service-specific/optional kecuali ada bukti kuat untuk core.
+- Sebelum release/tag jalankan `bun run release:check` dan ikuti `docs/22-RELEASE-READINESS.md`.

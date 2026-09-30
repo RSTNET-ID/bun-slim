@@ -165,3 +165,29 @@ Dokumentasi:
 - `docs/17-IDENTITY-TENANT-BOUNDARY.md`
 - `docs/18-DRAIN-READINESS-STANDARD.md`
 - `docs/19-CONTAINER-RUNTIME-HARDENING.md`
+
+## Core v1 Status
+
+Phase 1–12 selesai. Core Bun Slim sekarang **feature-frozen** untuk baseline v1.
+
+Sebelum release/tag:
+
+```bash
+bun run format:check
+bun run lint
+bun run typecheck
+bun run audit:prod
+bun run test
+bun run build
+bun run release:check
+```
+
+Dokumentasi penutup:
+- `docs/20-SERVICE-BOOTSTRAP.md`
+- `docs/21-CORE-FREEZE.md`
+- `docs/22-RELEASE-READINESS.md`
+- `docs/23-SECRET-LOGGING-STANDARD.md`
+- `SECURITY.md`
+- `CHANGELOG.md`
+
+Setelah v1, tambahan framework/infrastruktur baru sebaiknya masuk service-specific implementation atau optional pack, bukan core starter.
