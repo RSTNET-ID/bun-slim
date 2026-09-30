@@ -1,45 +1,61 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { ExampleRepository } from '@/modules/example/example.repository';
-import { closeDbClient, getDbClient } from '@/database/client';
+import type { ExampleRepository } from '@/modules/example/example.repository';
 
-describe('ExampleRepository — PostgreSQL integration', () => {
-  const repository = new ExampleRepository();
-  const createdIds: string[] = [];
+const hasDatabase = Boolean(process.env.DATABASE_URL);
 
-  beforeAll(async () => {
-    await getDbClient()`SELECT 1`;
+if (!hasDatabase) {
+  describe.skip('ExampleRepository — PostgreSQL integration', () => {
+    it('requires DATABASE_URL', () => {});
   });
+} else {
+  describe('ExampleRepository — PostgreSQL integration', () => {
+    let repository: ExampleRepository;
+    let closeDbClient: () => Promise<void>;
+    let getDbClient: typeof import('@/database/client').getDbClient;
+    const createdIds: string[] = [];
 
-  afterAll(async () => {
-    const sql = getDbClient();
-    if (createdIds.length > 0) {
-      await sql`DELETE FROM examples WHERE id IN ${sql(createdIds)}`;
-    }
-    await closeDbClient();
-  });
+    beforeAll(async () => {
+      const repositoryModule = await import('@/modules/example/example.repository');
+      const databaseModule = await import('@/database/client');
 
-  it('should persist, read, partially update, and delete an example', async () => {
-    const created = await repository.create({
-      name: `integration-${crypto.randomUUID()}`,
-      description: 'original',
+      repository = new repositoryModule.ExampleRepository();
+      closeDbClient = databaseModule.closeDbClient;
+      getDbClient = databaseModule.getDbClient;
+
+      await getDbClient()`SELECT 1`;
     });
-    createdIds.push(created.id);
 
-    const fetched = await repository.findById(created.id);
-    expect(fetched?.id).toBe(created.id);
-    expect(fetched?.description).toBe('original');
+    afterAll(async () => {
+      const sql = getDbClient();
+      if (createdIds.length > 0) {
+        await sql`DELETE FROM examples WHERE id IN ${sql(createdIds)}`;
+      }
+      await closeDbClient();
+    });
 
-    const updated = await repository.update(created.id, { name: 'renamed' });
-    expect(updated?.name).toBe('renamed');
-    expect(updated?.description).toBe('original');
+    it('should persist, read, partially update, and delete an example', async () => {
+      const created = await repository.create({
+        name: `integration-${crypto.randomUUID()}`,
+        description: 'original',
+      });
+      createdIds.push(created.id);
 
-    const deleted = await repository.delete(created.id);
-    expect(deleted).toBe(true);
+      const fetched = await repository.findById(created.id);
+      expect(fetched?.id).toBe(created.id);
+      expect(fetched?.description).toBe('original');
 
-    const missing = await repository.findById(created.id);
-    expect(missing).toBeNull();
+      const updated = await repository.update(created.id, { name: 'renamed' });
+      expect(updated?.name).toBe('renamed');
+      expect(updated?.description).toBe('original');
 
-    const index = createdIds.indexOf(created.id);
-    if (index !== -1) createdIds.splice(index, 1);
+      const deleted = await repository.delete(created.id);
+      expect(deleted).toBe(true);
+
+      const missing = await repository.findById(created.id);
+      expect(missing).toBeNull();
+
+      const index = createdIds.indexOf(created.id);
+      if (index !== -1) createdIds.splice(index, 1);
+    });
   });
-});
+}
