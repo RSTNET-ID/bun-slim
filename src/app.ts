@@ -1,6 +1,11 @@
 import { Hono } from 'hono';
 import { trimTrailingSlash } from 'hono/trailing-slash';
-import { requestIdMiddleware, loggerMiddleware, globalErrorHandler } from '@/shared/middleware';
+import {
+  requestIdMiddleware,
+  loggerMiddleware,
+  globalErrorHandler,
+  securityHeadersMiddleware,
+} from '@/shared/middleware';
 import { mainRouter } from '@/routes';
 import { sendError } from '@/shared/http/response';
 
@@ -12,6 +17,7 @@ export function createApp(): Hono {
 
   // Global Middleware
   app.use('*', requestIdMiddleware());
+  app.use('*', securityHeadersMiddleware());
   app.use('*', loggerMiddleware());
 
   // Mount Routes
