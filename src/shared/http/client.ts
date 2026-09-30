@@ -5,6 +5,8 @@ import { serviceMetrics } from '@/shared/observability/metrics';
 const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
 const SAFE_RETRY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+type FetchFunction = (input: string | URL, init?: RequestInit) => Promise<Response>;
+
 export interface OutboundHttpOptions {
   dependency: string;
   requestId?: string;
@@ -12,7 +14,7 @@ export interface OutboundHttpOptions {
   maxRetries?: number;
   retryBaseMs?: number;
   retryUnsafe?: boolean;
-  fetchFn?: typeof fetch;
+  fetchFn?: FetchFunction;
 }
 
 export class OutboundHttpError extends Error {
@@ -38,8 +40,17 @@ export async function fetchWithPolicy(
   const maxRetries = options.maxRetries ?? config.OUTBOUND_HTTP_MAX_RETRIES;
   const retryBaseMs = options.retryBaseMs ?? config.OUTBOUND_HTTP_RETRY_BASE_MS;
   const retryAllowed = SAFE_RETRY_METHODS.has(method) || options.retryUnsafe === true;
-  const fetchFn = options.fetchFn ?? fetch;
+  const fetchFn: FetchFunction = options.fetchFn ?? fetch;
   const totalAttempts = retryAllowed ? maxRetries + 1 : 1;
+
+  const baseHeaders = new Headers(init.headers);
+  if (
+    options.retryUnsafe === true &&
+    (method === 'POST' || method === 'PATCH') &&
+    !baseHeaders.has('Idempotency-Key')
+  ) {
+    throw new Error(`Retrying ${method} requires an Idempotency-Key header`);
+  }
 
   for (let attempt = 1; attempt <= totalAttempts; attempt += 1) {
     const startedAt = performance.now();
@@ -47,7 +58,7 @@ export async function fetchWithPolicy(
     const cleanupParentSignal = linkAbortSignal(init.signal, controller);
     const timeout = setTimeout(() => controller.abort(new Error('outbound_timeout')), timeoutMs);
 
-    const headers = new Headers(init.headers);
+    const headers = new Headers(baseHeaders);
     if (options.requestId && !headers.has('X-Request-ID')) {
       headers.set('X-Request-ID', options.requestId);
     }
@@ -114,7 +125,7 @@ export async function fetchWithPolicy(
         attempt,
         max_attempts: totalAttempts,
         request_id: options.requestId,
-        error: error instanceof Error ? error.message : String(error),
+        error_name: error instanceof Error ? error.name : 'UnknownError',
       });
 
       await retrySleep(retryBaseMs, attempt, init.signal);
