@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { healthRoute } from './health.route';
+import { metricsRoute } from './metrics.route';
 import { exampleRoute } from '@/modules/example/example.route';
 import { sendSuccess } from '@/shared/http/response';
 
@@ -17,6 +18,7 @@ mainRouter.get('/', (c) => {
 
 // Health routes (unversioned per 03-API-STANDARD.md)
 mainRouter.route('/health', healthRoute);
+mainRouter.route('/metrics', metricsRoute);
 
 // API v1 routes
 const apiV1 = new Hono();
