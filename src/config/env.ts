@@ -17,6 +17,21 @@ export const envSchema = z
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
+    // HTTP runtime hardening.
+    SERVER_HOST: z.string().min(1).default('0.0.0.0'),
+    SERVER_IDLE_TIMEOUT_SECONDS: z.coerce.number().int().min(1).max(255).default(15),
+    MAX_REQUEST_BODY_BYTES: z.coerce.number().int().min(1024).default(1_048_576),
+    SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().min(1000).default(15_000),
+    SECURITY_HEADERS_ENABLED: booleanFromEnv.default(true),
+
+    // Optional Prometheus-compatible metrics endpoint.
+    METRICS_ENABLED: booleanFromEnv.default(false),
+
+    // Shared outbound HTTP policy. Individual adapters may override these values.
+    OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().min(100).default(5000),
+    OUTBOUND_HTTP_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
+    OUTBOUND_HTTP_RETRY_BASE_MS: z.coerce.number().int().min(0).max(10_000).default(100),
+
     DB_DRIVER: z.enum(['postgres', 'mysql']).default('postgres'),
 
     DATABASE_URL: z.string().url('DATABASE_URL must be a valid connection URL'),
