@@ -67,6 +67,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
 
 # Copy compiled standalone executable and database assets from builder
 COPY --from=builder --chown=appuser:appgroup /app/dist/server ./server
+COPY --from=builder --chown=appuser:appgroup /app/dist/worker ./worker
 COPY --from=builder --chown=appuser:appgroup /app/database/ ./database/
 
 USER appuser
