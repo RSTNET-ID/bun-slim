@@ -12,6 +12,7 @@ export interface WorkerRunnerOptions {
 export class WorkerRunner {
   private stopping = false;
   private runningJobs = 0;
+  private readonly stopWaiters = new Set<() => void>();
 
   constructor(
     private readonly queue: RedisStreamQueue,
@@ -35,7 +36,12 @@ export class WorkerRunner {
   }
 
   stop(): void {
+    if (this.stopping) return;
     this.stopping = true;
+
+    for (const wake of this.stopWaiters) wake();
+    this.stopWaiters.clear();
+
     logger.info('Worker stop requested', {
       worker_id: this.options.workerId,
       running_jobs: this.runningJobs,
@@ -63,8 +69,8 @@ export class WorkerRunner {
     const consumerName = `${this.options.workerId}:reclaimer`;
 
     while (!this.stopping) {
-      await sleep(config.WORKER_RECLAIM_INTERVAL_MS);
-      if (this.stopping) break;
+      const shouldContinue = await this.waitOrStop(config.WORKER_RECLAIM_INTERVAL_MS);
+      if (!shouldContinue || this.stopping) break;
 
       try {
         const messages = await this.queue.claimStale(
@@ -87,6 +93,27 @@ export class WorkerRunner {
         });
       }
     }
+  }
+
+  private waitOrStop(ms: number): Promise<boolean> {
+    if (this.stopping) return Promise.resolve(false);
+
+    return new Promise((resolve) => {
+      let wake: () => void;
+
+      const timer = setTimeout(() => {
+        this.stopWaiters.delete(wake);
+        resolve(true);
+      }, ms);
+
+      wake = () => {
+        clearTimeout(timer);
+        this.stopWaiters.delete(wake);
+        resolve(false);
+      };
+
+      this.stopWaiters.add(wake);
+    });
   }
 
   private async handleMessage(message: RedisStreamMessage): Promise<void> {
