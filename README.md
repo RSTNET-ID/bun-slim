@@ -34,8 +34,10 @@ bun run migrate:status
 Unit + HTTP contract:
 
 ```bash
-bun test
+bun run test
 ```
+
+`bun test` tetap dapat dipakai untuk discovery semua test; database integration akan skip bila `DATABASE_URL` tidak tersedia.
 
 Per layer:
 
