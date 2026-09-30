@@ -163,3 +163,34 @@ Review:
 - security headers
 - reverse proxy trust assumptions
 - dependency vulnerability audit
+
+## Identity / Tenant Agent
+
+Jika service multi-tenant:
+- tenant identifier dari request tidak boleh langsung dipercaya
+- tentukan authenticated principal
+- implement explicit tenant authorization
+- uji cross-tenant denial
+- jangan gunakan forwarded IP header tanpa trusted proxy policy
+
+## Lifecycle Agent
+
+Review:
+- readiness saat normal
+- readiness saat draining
+- drain propagation delay
+- shutdown timeout
+- orchestrator termination grace period
+- long-running request yang seharusnya dipindah ke worker
+
+## Container Hardening Agent
+
+Pertahankan baseline:
+- compiled binary runtime image
+- non-root
+- no-new-privileges
+- capability drop
+- read-only filesystem
+- tmpfs untuk temporary files
+- PID limit
+- Docker build/smoke validation di CI
