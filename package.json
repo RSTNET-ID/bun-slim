@@ -1,0 +1,24 @@
+{
+  "name": "bun-hono-microservice-starter",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/server.ts",
+    "start": "bun src/server.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "migrate": "bun database/migrate.ts",
+    "migrate:up": "bun database/migrate.ts up",
+    "migrate:down": "bun database/migrate.ts down",
+    "migrate:refresh": "bun database/migrate.ts refresh",
+    "migrate:status": "bun database/migrate.ts status"
+  },
+  "dependencies": {
+    "hono": "^4.7.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.3"
+  }
+}
