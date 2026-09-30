@@ -26,3 +26,22 @@ Dependency direction default:
 `route -> handler -> service -> repository/adapter`
 
 Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
+
+## Outbound HTTP
+
+- Gunakan `fetchWithPolicy()` sebagai baseline outbound HTTP.
+- Retry write tidak boleh diaktifkan tanpa idempotency strategy.
+- Jangan log full URL/query, Authorization, API key, token, atau payload sensitif.
+- Nama dependency untuk log/metrics harus bounded dan logical.
+
+## Observability
+
+- Metrics label harus low-cardinality.
+- Jangan gunakan raw path, request ID, tenant ID, transaction ID, atau user input sebagai metric label.
+- `/metrics` disabled by default dan production exposure harus dibatasi oleh network/proxy policy.
+
+## Production Runtime
+
+- Pertahankan request body limit dan graceful shutdown deadline kecuali business requirement mengharuskan perubahan.
+- Jangan mengaktifkan Bun development error page di staging/production.
+- High/critical production dependency advisory harus dianggap CI blocker kecuali ada documented security exception.

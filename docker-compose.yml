@@ -11,6 +11,15 @@ services:
       SERVICE_NAME: example-service
       PORT: 3000
       LOG_LEVEL: info
+      SERVER_HOST: 0.0.0.0
+      SERVER_IDLE_TIMEOUT_SECONDS: 15
+      MAX_REQUEST_BODY_BYTES: 1048576
+      SHUTDOWN_TIMEOUT_MS: 15000
+      SECURITY_HEADERS_ENABLED: "true"
+      METRICS_ENABLED: "false"
+      OUTBOUND_HTTP_TIMEOUT_MS: 5000
+      OUTBOUND_HTTP_MAX_RETRIES: 2
+      OUTBOUND_HTTP_RETRY_BASE_MS: 100
       DB_DRIVER: postgres
       DATABASE_URL: postgres://user:password@postgres:5432/example_service
       DB_POOL_MAX: 10
