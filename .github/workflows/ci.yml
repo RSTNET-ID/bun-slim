@@ -25,10 +25,7 @@ jobs:
         run: HUSKY=0 bun install --frozen-lockfile
 
       - name: Format check
-        run: |
-          bun run format
-          git diff -- src/worker/queue.ts database/migrate.ts
-          git diff --exit-code
+        run: bun run format:check
 
       - name: Lint
         run: bun run lint
