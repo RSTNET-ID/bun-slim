@@ -67,9 +67,7 @@ export class ServiceMetrics {
 
     for (const [key, value] of this.httpRequests) {
       const [method, status] = key.split('|') as [string, string];
-      lines.push(
-        `service_http_requests_total${labelString({ method, status })} ${value}`
-      );
+      lines.push(`service_http_requests_total${labelString({ method, status })} ${value}`);
     }
 
     lines.push(
