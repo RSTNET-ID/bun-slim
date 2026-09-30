@@ -10,8 +10,6 @@ export type TransactionContext = TransactionSQL;
  * Repository dapat menerima TransactionContext agar seluruh query menggunakan
  * dedicated transaction connection yang sama.
  */
-export async function runTransaction<T>(
-  fn: (tx: TransactionContext) => Promise<T>
-): Promise<T> {
+export async function runTransaction<T>(fn: (tx: TransactionContext) => Promise<T>): Promise<T> {
   return await getDbClient().begin(async (tx) => fn(tx));
 }
