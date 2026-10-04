@@ -36,15 +36,72 @@ Alasannya:
 
 ## Timezone
 
-Semua scheduler menggunakan UTC secara eksplisit:
+Runtime application dan database tetap menggunakan UTC. **Timezone scheduler terpisah dari runtime timezone.**
+
+Default scheduler timezone:
+
+```env
+TZ=UTC
+SCHEDULER_TIMEZONE=UTC
+```
+
+Untuk jadwal bisnis Indonesia:
+
+```env
+TZ=UTC
+SCHEDULER_TIMEZONE=Asia/Jakarta
+```
+
+`SCHEDULER_TIMEZONE` harus berupa IANA timezone yang valid. Contoh:
+- `UTC`
+- `Asia/Jakarta`
+- `Asia/Makassar`
+- `Asia/Jayapura`
+- `America/New_York`
+- `Europe/London`
+
+Scheduler runner meneruskan timezone secara eksplisit:
 
 ```ts
-Bun.cron(expression, handler, { tz: 'UTC' });
+Bun.cron(expression, handler, { tz: timezone });
 ```
 
 Jangan bergantung pada timezone host/container.
 
-Jika kebutuhan bisnis menyebut WIB atau timezone lain, konversikan jadwal bisnis ke UTC atau buat keputusan architecture eksplisit. Baseline starter tetap UTC.
+### Per-task timezone
+
+Task dapat override default scheduler timezone:
+
+```ts
+export const scheduledTasks: ScheduledTask[] = [
+  {
+    name: 'daily-reconciliation-wib',
+    cron: '0 1 * * *',
+    timezone: 'Asia/Jakarta',
+    async run({ timezone }) {
+      await enqueueJob('reconciliation.daily', { timezone });
+    },
+  },
+  {
+    name: 'utc-maintenance',
+    cron: '30 2 * * *',
+    timezone: 'UTC',
+    async run() {
+      await enqueueJob('maintenance.run', {});
+    },
+  },
+];
+```
+
+Resolution rule:
+
+```text
+task.timezone
+    ↓ fallback
+SCHEDULER_TIMEZONE
+```
+
+Jadi `0 1 * * *` dengan `Asia/Jakarta` berarti pukul **01:00 WIB**, walaupun container dan database tetap UTC.
 
 ## Register Task
 
@@ -54,7 +111,8 @@ Tambahkan task di `src/scheduler/registry.ts`:
 export const scheduledTasks: ScheduledTask[] = [
   {
     name: 'notification-digest',
-    cron: '0 * * * *',
+    cron: '0 8 * * *',
+    timezone: 'Asia/Jakarta',
     async run() {
       await enqueueJob('notification.digest', {});
     },
@@ -131,6 +189,7 @@ Task harus menghormati `AbortSignal` bila melakukan I/O yang mendukung cancellat
 ```env
 TZ=UTC
 SCHEDULER_ENABLED=false
+SCHEDULER_TIMEZONE=UTC
 ```
 
 Scheduler disabled secara default.
@@ -139,10 +198,18 @@ Aktifkan hanya setelah minimal satu task didaftarkan.
 
 ## Commands
 
-Development:
+Development dengan default UTC:
 
 ```bash
 SCHEDULER_ENABLED=true bun run scheduler:dev
+```
+
+Development dengan WIB:
+
+```bash
+SCHEDULER_ENABLED=true \
+SCHEDULER_TIMEZONE=Asia/Jakarta \
+bun run scheduler:dev
 ```
 
 Production binary:
@@ -154,9 +221,12 @@ Production binary:
 ## Operational Rules
 
 - satu scheduler replica sebagai default
+- runtime/database tetap UTC
+- scheduler timezone menggunakan IANA timezone yang tervalidasi
+- per-task timezone boleh override `SCHEDULER_TIMEZONE`
 - jangan pakai `setInterval()` untuk calendar scheduling
 - jangan menjalankan scheduler dari setiap HTTP replica
 - scheduler task name harus stabil
-- schedule harus terdokumentasi
+- schedule dan timezone harus terdokumentasi
 - task yang enqueue job harus mengikuti job versioning/idempotency rules
 - metrik/log tidak boleh memakai timestamp/job ID sebagai label
