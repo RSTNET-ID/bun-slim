@@ -115,12 +115,13 @@ Core starter tidak membutuhkan Redis.
 
 Bila service membutuhkan background job, tersedia optional worker pack berbasis Bun native Redis client + Redis Streams.
 
-Build menghasilkan tiga binary:
+Build menghasilkan empat binary:
 
 ```text
 dist/server
 dist/worker
 dist/scheduler
+dist/job-dead
 ```
 
 Jalankan worker lokal:
@@ -192,6 +193,15 @@ bun run job:dead:purge -- --older-than=30d --limit=100 --force
 ```
 
 Payload disembunyikan pada `show` kecuali `--payload` diberikan. Replay production membutuhkan `--force`, mempertahankan `job_id`, mereset `attempt=1`, dan hanya boleh dilakukan bila handler job masih terdaftar.
+
+Production image juga membawa standalone binary sehingga tidak membutuhkan Bun runtime/source tree:
+
+```bash
+./job-dead list --limit=20
+./job-dead show <stream-id>
+./job-dead replay <stream-id> --force
+./job-dead purge --older-than=30d --limit=100 --force
+```
 
 Lihat `docs/12-WORKER-REDIS-STANDARD.md`.
 
