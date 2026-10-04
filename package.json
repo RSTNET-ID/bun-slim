@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/server.ts",
-    "build": "bun run build:server && bun run build:worker",
+    "build": "bun run build:server && bun run build:worker && bun run build:scheduler",
     "start": "./dist/server",
     "start:dev": "bun src/server.ts",
     "route:list": "bun scripts/route-list.ts",
@@ -27,7 +27,12 @@
     "build:worker": "bun build --compile --minify ./src/worker.ts --outfile dist/worker",
     "worker:dev": "bun src/worker.ts",
     "audit:prod": "bun audit --prod --audit-level=high",
-    "release:check": "bun scripts/release-check.ts"
+    "release:check": "bun scripts/release-check.ts",
+    "build:scheduler": "bun build --compile --minify ./src/scheduler.ts --outfile dist/scheduler",
+    "scheduler:dev": "bun src/scheduler.ts",
+    "seed": "bun database/seed.ts run",
+    "seed:run": "bun database/seed.ts run",
+    "seed:create": "bun database/seed.ts create"
   },
   "dependencies": {
     "hono": "^4.7.0",
