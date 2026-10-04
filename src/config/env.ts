@@ -10,6 +10,18 @@ const booleanFromEnv = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
+const timezoneSchema = z.string().min(1).refine(
+  (value) => {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: value }).format();
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  { message: 'SCHEDULER_TIMEZONE must be a valid IANA timezone' }
+);
+
 export const envSchema = z
   .object({
     APP_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
@@ -52,6 +64,7 @@ export const envSchema = z
     WORKER_ENABLED: booleanFromEnv.default(false),
     // Optional dedicated Bun.cron scheduler process.
     SCHEDULER_ENABLED: booleanFromEnv.default(false),
+    SCHEDULER_TIMEZONE: timezoneSchema.default('UTC'),
     REDIS_URL: z.string().url('REDIS_URL must be a valid Redis URL').optional(),
     REDIS_CONNECTION_TIMEOUT_MS: z.coerce.number().int().min(100).default(5000),
     REDIS_MAX_RETRIES: z.coerce.number().int().min(0).max(100).default(20),
