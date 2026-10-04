@@ -48,6 +48,7 @@ RUN bun run build
 FROM alpine:3.22 AS production
 
 ARG TZ
+ENV TZ=${TZ}
 RUN apk add --no-cache \
     tzdata \
     ca-certificates \
@@ -78,6 +79,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
 # Copy compiled standalone executable and database assets from builder
 COPY --from=builder --chown=appuser:appgroup /app/dist/server ./server
 COPY --from=builder --chown=appuser:appgroup /app/dist/worker ./worker
+COPY --from=builder --chown=appuser:appgroup /app/dist/scheduler ./scheduler
 COPY --from=builder --chown=appuser:appgroup /app/database/ ./database/
 
 USER appuser
