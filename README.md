@@ -139,10 +139,10 @@ Scheduler berjalan sebagai process terpisah dari HTTP server dan worker.
 Daftarkan task di `src/scheduler/registry.ts`. Untuk pekerjaan durable/retryable, scheduler sebaiknya hanya memanggil `enqueueJob()` lalu worker yang mengeksekusi business work.
 
 ```bash
-SCHEDULER_ENABLED=true bun run scheduler:dev
+SCHEDULER_ENABLED=true SCHEDULER_TIMEZONE=Asia/Jakarta bun run scheduler:dev
 ```
 
-Baseline scheduler memakai UTC dan satu scheduler replica. Bun mencegah overlap task yang sama dalam satu process, tetapi tidak melakukan deduplication antar replica.
+Runtime/database tetap UTC. Scheduler default memakai `SCHEDULER_TIMEZONE=UTC`, dapat diubah misalnya menjadi `Asia/Jakarta`, dan setiap task boleh memiliki `timezone` sendiri. Baseline production tetap satu scheduler replica.
 
 Compose template setelah minimal satu task terdaftar:
 
