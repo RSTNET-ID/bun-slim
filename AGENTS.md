@@ -15,11 +15,12 @@ Sebelum mengubah kode:
 10. Business logic tidak boleh menerima `Hono Context`.
 11. PostgreSQL adalah database default, tetapi persistence layer tidak boleh mengunci domain/service ke PostgreSQL.
 12. Worker, bila diperlukan, menggunakan Bun native RedisClient + Redis Streams consumer group sebagai baseline.
-13. Service tanpa worker tidak wajib memakai Redis; jangan memasang worker/Redis hanya demi keseragaman.
-14. Worker handler wajib memperlakukan delivery sebagai at-least-once dan menjaga operasi write tetap idempotent.
-15. Tambah atau update test untuk perubahan behavior.
-16. Update dokumentasi terkait architecture, API, data, security, observability, atau deployment.
-17. Perubahan architecture penting harus memiliki ADR.
+13. Scheduler, bila diperlukan, menggunakan dedicated `Bun.cron()` process dengan UTC; jangan register cron di HTTP server.
+14. Service tanpa worker tidak wajib memakai Redis; jangan memasang worker/Redis hanya demi keseragaman.
+15. Worker handler wajib memperlakukan delivery sebagai at-least-once dan menjaga operasi write tetap idempotent.
+16. Tambah atau update test untuk perubahan behavior.
+17. Update dokumentasi terkait architecture, API, data, security, observability, atau deployment.
+18. Perubahan architecture penting harus memiliki ADR.
 
 Dependency direction default:
 
@@ -70,11 +71,20 @@ Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
 - Jangan log seluruh `process.env`, provider config, credential object, Authorization, cookie, token, password, DB/Redis URL credential, atau private key.
 - Pertahankan recursive logger redaction dan test coverage-nya.
 
+## Scheduler
+
+- Scheduler menentukan waktu; worker menangani durable/retryable execution.
+- Default scheduler replica count adalah 1.
+- Multi-replica scheduler wajib memiliki distributed lease/leader election.
+- Cron task tidak boleh menyalin business logic dari service.
+- Jadwal wajib UTC pada baseline starter.
+- Reference/sample data baru menggunakan `database/seeders/*.seeder.ts`, bukan migration baru.
+
 ## Core Freeze
 
 - Setelah Phase 12, core dianggap feature-complete.
 - Perubahan core baru harus berupa correctness/security/reliability fix, compatibility update, complexity reduction, atau proven production failure mode.
-- ORM, OpenTelemetry, Swagger generator, broker, cache abstraction, circuit breaker framework, scheduler, object-storage SDK, email, dan websocket tetap service-specific/optional kecuali ada bukti kuat untuk core.
+- ORM, OpenTelemetry, Swagger generator, broker, cache abstraction, circuit breaker framework, object-storage SDK, email, dan websocket tetap service-specific/optional kecuali ada bukti kuat untuk core.
 - Sebelum release/tag jalankan `bun run release:check` dan ikuti `docs/22-RELEASE-READINESS.md`.
 
 
