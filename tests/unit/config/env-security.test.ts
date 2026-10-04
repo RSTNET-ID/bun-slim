@@ -18,6 +18,20 @@ describe('production environment security guards', () => {
     expect(invalid.success).toBe(false);
   });
 
+  it('validates the scheduler IANA timezone independently from runtime UTC', () => {
+    const jakarta = envSchema.safeParse({
+      ...productionBase,
+      SCHEDULER_TIMEZONE: 'Asia/Jakarta',
+    });
+    const invalid = envSchema.safeParse({
+      ...productionBase,
+      SCHEDULER_TIMEZONE: 'Mars/Olympus_Mons',
+    });
+
+    expect(jakarta.success).toBe(true);
+    expect(invalid.success).toBe(false);
+  });
+
   it('rejects example CRUD routes in production', () => {
     const result = envSchema.safeParse({
       ...productionBase,
