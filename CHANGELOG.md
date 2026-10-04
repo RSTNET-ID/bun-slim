@@ -7,12 +7,14 @@ Format mengikuti semantic versioning.
 ## Unreleased
 
 ### Added
+- DLQ operational CLI for bounded list/show, atomic replay, and retention purge
 - transactional outbox reliability standard for DB-write + Redis job atomicity
 - transactional, idempotent PostgreSQL database seeder with advisory locking and production `--force` guard
 - dedicated Bun.cron scheduler process, registry, validation tests, standalone binary, and Compose overlay
 - UTC runtime baseline for application, worker, PostgreSQL development service, and scheduler
 
 ### Changed
+- worker job envelope validation is shared by runtime and DLQ replay tooling
 - main database config is PostgreSQL-only and staging/production require verified TLS
 - scheduler responsibilities are explicitly separated from worker durable execution
 - coding rules now require new reference/sample data to use seeders rather than new migrations
