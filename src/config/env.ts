@@ -50,7 +50,7 @@ export const envSchema = z
     OUTBOUND_HTTP_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
     OUTBOUND_HTTP_RETRY_BASE_MS: z.coerce.number().int().min(0).max(10_000).default(100),
 
-    DB_DRIVER: z.enum(['postgres', 'mysql']).default('postgres'),
+    DB_DRIVER: z.literal('postgres').default('postgres'),
 
     DATABASE_URL: z.string().url('DATABASE_URL must be a valid connection URL'),
 
@@ -59,6 +59,10 @@ export const envSchema = z
     DB_CONNECTION_TIMEOUT_SECONDS: z.coerce.number().int().min(1).default(10),
     DB_MAX_LIFETIME_SECONDS: z.coerce.number().int().min(0).default(0),
     DB_PREPARE: booleanFromEnv.default(true),
+    DB_TLS_MODE: z
+      .enum(['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'])
+      .default('disable'),
+    DB_TLS_CA_FILE: z.string().min(1).optional(),
 
     // Optional Redis worker/queue pack. HTTP-only services do not require Redis.
     WORKER_ENABLED: booleanFromEnv.default(false),
@@ -86,10 +90,7 @@ export const envSchema = z
       return;
     }
 
-    const acceptedProtocols: Record<typeof env.DB_DRIVER, string[]> = {
-      postgres: ['postgres', 'postgresql'],
-      mysql: ['mysql', 'mysql2'],
-    };
+    const acceptedProtocols = ['postgres', 'postgresql'];
 
     if (env.METRICS_ENABLED && !env.METRICS_TOKEN) {
       ctx.addIssue({
@@ -133,6 +134,14 @@ export const envSchema = z
       } catch {
         // URL validation already reports malformed DATABASE_URL.
       }
+
+      if (env.DB_TLS_MODE !== 'verify-full') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['DB_TLS_MODE'],
+          message: 'DB_TLS_MODE must be verify-full in staging/production',
+        });
+      }
     }
 
     if (env.WORKER_ENABLED && !env.REDIS_URL) {
@@ -143,7 +152,7 @@ export const envSchema = z
       });
     }
 
-    if (!acceptedProtocols[env.DB_DRIVER].includes(protocol)) {
+    if (!acceptedProtocols.includes(protocol)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['DATABASE_URL'],
