@@ -41,6 +41,8 @@ const REQUIRED_FILES = [
   'src/scheduler/registry.ts',
   'database/seed.ts',
   'database/seeders/20240101000000_example_categories.seeder.ts',
+  'scripts/job-dead.ts',
+  'src/worker/dead-letter.ts',
 ] as const;
 
 const REQUIRED_SCRIPTS = [
@@ -55,6 +57,10 @@ const REQUIRED_SCRIPTS = [
   'build:scheduler',
   'scheduler:dev',
   'audit:prod',
+  'job:dead:list',
+  'job:dead:show',
+  'job:dead:replay',
+  'job:dead:purge',
   'release:check',
 ] as const;
 
@@ -139,6 +145,14 @@ for (const pattern of forbiddenEnvFragments) {
   if (pattern.test(envExample)) {
     failures.push(`.env.example contains a value matching forbidden secret pattern: ${pattern}`);
   }
+}
+
+const deadLetterCli = await Bun.file('scripts/job-dead.ts').text();
+if (!deadLetterCli.includes('always requires --force')) {
+  failures.push('DLQ CLI must keep purge destructive guard');
+}
+if (!deadLetterCli.includes('Production DLQ replay requires --force')) {
+  failures.push('DLQ CLI must keep production replay guard');
 }
 
 const agents = await Bun.file('AGENTS.md').text();
