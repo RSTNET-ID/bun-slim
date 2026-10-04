@@ -6,9 +6,18 @@ const productionBase = {
   SERVICE_NAME: 'security-test-service',
   DATABASE_URL: 'postgres://app_user:strong-runtime-secret@db.internal:5432/service',
   DB_DRIVER: 'postgres',
+  TZ: 'UTC',
 };
 
 describe('production environment security guards', () => {
+  it('forces UTC as the only supported runtime timezone', () => {
+    const valid = envSchema.safeParse({ ...productionBase, TZ: 'UTC' });
+    const invalid = envSchema.safeParse({ ...productionBase, TZ: 'Asia/Jakarta' });
+
+    expect(valid.success).toBe(true);
+    expect(invalid.success).toBe(false);
+  });
+
   it('rejects example CRUD routes in production', () => {
     const result = envSchema.safeParse({
       ...productionBase,
