@@ -220,9 +220,22 @@ create = async (c: Context) => {
 - Jangan gunakan `setInterval()` sebagai pengganti calendar scheduling.
 - In-process cron tidak menjamin catch-up setelah downtime. Job bisnis yang tidak boleh terlewat harus memiliki durable reconciliation/catch-up strategy.
 
+
 ---
 
-## 15. Build & Binary Execution
+## 15. Transactional Outbox
+
+- Jangan lakukan dual-write `database commit -> enqueue Redis` bila kehilangan job/event dapat membuat business state tidak konsisten.
+- Untuk side effect yang wajib mengikuti business write, insert outbox row dalam transaction database yang sama.
+- Dispatcher outbox mem-publish secara at-least-once; consumer tetap wajib idempotent.
+- Jangan melakukan Redis/network call di dalam transaction DB untuk mencoba membuat atomicity lintas sistem.
+- Outbox payload harus versioned, minimal, dan tidak membawa secret.
+- Dispatcher wajib batch-bounded, memiliki retry/backoff, stuck-row handling, dan retention policy.
+- Lihat `docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md`.
+
+---
+
+## 16. Build & Binary Execution
 
 - **Wajib berupa Standalone Binary Bun**: Perintah build `bun run build` harus melakukan proses kompilasi native menjadi single standalone binary executable (`bun build --compile --minify ./src/server.ts --outfile dist/server`).
 - Output kompilasi diletakkan di dalam folder `dist/` dan di-ignore oleh `.gitignore`.
@@ -230,7 +243,7 @@ create = async (c: Context) => {
 
 ---
 
-## 16. Routing & Route Inspection
+## 17. Routing & Route Inspection
 
 - **Trailing Slash Normalization**: Seluruh request ke endpoint dengan atau tanpa trailing slash (misal `/health/` vs `/health`) harus berjalan konsisten tanpa mengembalikan 404. Gunakan `trimTrailingSlash()` dari `hono/trailing-slash` pada `app.ts`.
 - **Base Root Endpoint Handling**: Base path (seperti `/` dan `/api/v1`) wajib menyediakan handler informasi status/discovery ringan (misal mengembalikan `sendSuccess`) agar tidak mengembalikan 404 saat dipanggil oleh browser atau load balancer.
