@@ -231,6 +231,9 @@ create = async (c: Context) => {
 - Jangan melakukan Redis/network call di dalam transaction DB untuk mencoba membuat atomicity lintas sistem.
 - Outbox payload harus versioned, minimal, dan tidak membawa secret.
 - Dispatcher wajib batch-bounded, memiliki retry/backoff, stuck-row handling, dan retention policy.
+- DLQ replay adalah operasi at-least-once: pertahankan logical `job_id`, reset delivery attempt secara eksplisit, dan worker tetap wajib idempotent.
+- DLQ list/purge wajib bounded; destructive purge memerlukan explicit force guard.
+- Jangan menampilkan raw DLQ payload secara default karena dapat mengandung business data sensitif.
 - Lihat `docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md`.
 
 ---
