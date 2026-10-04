@@ -28,6 +28,8 @@ Gunakan istilah baku:
 - config
 - worker
 - job
+- scheduler
+- scheduled task
 
 Gunakan `handler`, bukan membuat istilah `controller` baru untuk konsep yang sama.
 
@@ -49,6 +51,7 @@ Boleh membuat:
 Jangan otomatis membuat:
 - Redis
 - worker
+- scheduler
 - ORM
 - cache
 - message broker
@@ -87,6 +90,19 @@ Jika background processing diperlukan:
 - definisikan graceful shutdown
 
 Jangan memakai worker untuk request yang seharusnya synchronous sederhana.
+
+## Scheduler Agent
+
+Jika calendar/time-based execution diperlukan:
+- gunakan dedicated `Bun.cron()` scheduler process
+- gunakan timezone UTC eksplisit
+- jangan register cron di HTTP server
+- scheduler menentukan waktu, worker menangani durable/retryable execution
+- default production scheduler = 1 replica
+- multi-replica membutuhkan distributed lease/leader election
+- definisikan catch-up/reconciliation bila run tidak boleh terlewat
+
+Jangan memindahkan business logic ke scheduler callback.
 
 ## Architecture Agent
 
