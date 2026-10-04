@@ -184,6 +184,15 @@ bun run job:dead:replay -- <stream-id>
 bun run job:dead:purge -- --older-than=30d --limit=100 --force
 ```
 
+Standalone production binary:
+
+```bash
+./job-dead list --limit=20
+./job-dead show <stream-id>
+./job-dead replay <stream-id> --force
+./job-dead purge --older-than=30d --limit=100 --force
+```
+
 Production replay membutuhkan `--force`:
 
 ```bash
