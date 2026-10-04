@@ -13,6 +13,7 @@ const booleanFromEnv = z.preprocess((value) => {
 export const envSchema = z
   .object({
     APP_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
+    TZ: z.literal('UTC').default('UTC'),
     SERVICE_NAME: z.string().min(1).default('example-service'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
@@ -49,6 +50,8 @@ export const envSchema = z
 
     // Optional Redis worker/queue pack. HTTP-only services do not require Redis.
     WORKER_ENABLED: booleanFromEnv.default(false),
+    // Optional dedicated Bun.cron scheduler process.
+    SCHEDULER_ENABLED: booleanFromEnv.default(false),
     REDIS_URL: z.string().url('REDIS_URL must be a valid Redis URL').optional(),
     REDIS_CONNECTION_TIMEOUT_MS: z.coerce.number().int().min(100).default(5000),
     REDIS_MAX_RETRIES: z.coerce.number().int().min(0).max(100).default(20),
