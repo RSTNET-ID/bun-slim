@@ -10,6 +10,7 @@ const REQUIRED_FILES = [
   '.gitignore',
   'Dockerfile',
   'docker-compose.yml',
+  'docker-compose.scheduler.yml',
   'package.json',
   'docs/00-PROJECT.md',
   'docs/01-ARCHITECTURE.md',
