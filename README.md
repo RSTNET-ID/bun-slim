@@ -26,6 +26,7 @@ bun run dev
 
 ```bash
 bun run migrate:up
+bun run seed
 bun run migrate:status
 ```
 
@@ -89,7 +90,9 @@ tests/
 
 database/
 ├── migrate.ts
-└── migrations/
+├── seed.ts
+├── migrations/
+└── seeders/
 ```
 
 Lihat `docs/` dan `AGENTS.md` untuk standar architecture, database, security, testing, deployment, dan coding-agent.
@@ -100,11 +103,12 @@ Core starter tidak membutuhkan Redis.
 
 Bila service membutuhkan background job, tersedia optional worker pack berbasis Bun native Redis client + Redis Streams.
 
-Build menghasilkan dua binary:
+Build menghasilkan tiga binary:
 
 ```text
 dist/server
 dist/worker
+dist/scheduler
 ```
 
 Jalankan worker lokal:
@@ -127,6 +131,32 @@ docker compose \
 Register job handler di `src/worker/registry.ts` dan enqueue melalui `@/worker/producer`.
 
 Lihat `docs/12-WORKER-REDIS-STANDARD.md` untuk delivery semantics, retry, dead-letter, stale reclaim, idempotency, dan graceful shutdown.
+
+## Optional Bun.cron Scheduler
+
+Scheduler berjalan sebagai process terpisah dari HTTP server dan worker.
+
+Daftarkan task di `src/scheduler/registry.ts`. Untuk pekerjaan durable/retryable, scheduler sebaiknya hanya memanggil `enqueueJob()` lalu worker yang mengeksekusi business work.
+
+```bash
+SCHEDULER_ENABLED=true bun run scheduler:dev
+```
+
+Baseline scheduler memakai UTC dan satu scheduler replica. Bun mencegah overlap task yang sama dalam satu process, tetapi tidak melakukan deduplication antar replica.
+
+Lihat `docs/25-SCHEDULER-STANDARD.md`.
+
+## Database Seeder
+
+Reference/sample data baru dikelola melalui seeder terpisah:
+
+```bash
+bun run seed
+bun run seed:run -- example_categories
+bun run seed:create roles
+```
+
+Seeder bersifat idempotent, transactional, memakai PostgreSQL advisory lock, dan membutuhkan `--force` di production. Migration historis tetap immutable.
 
 ## Resilience, Metrics, and Production Hardening
 
