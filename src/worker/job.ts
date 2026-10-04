@@ -61,7 +61,7 @@ export function parseJobEnvelope(raw: string): JobEnvelope {
     throw new Error('Job envelope has invalid job_type');
   }
 
-  if (!Number.isInteger(job.version) || (job.version ?? 0) < 1) {
+  if (typeof job.version !== 'number' || !Number.isInteger(job.version) || job.version < 1) {
     throw new Error('Job envelope has invalid version');
   }
 
@@ -69,7 +69,7 @@ export function parseJobEnvelope(raw: string): JobEnvelope {
     throw new Error('Job envelope has invalid created_at');
   }
 
-  if (!Number.isInteger(job.attempt) || (job.attempt ?? 0) < 1) {
+  if (typeof job.attempt !== 'number' || !Number.isInteger(job.attempt) || job.attempt < 1) {
     throw new Error('Job envelope has invalid attempt');
   }
 
