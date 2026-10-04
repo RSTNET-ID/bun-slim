@@ -18,6 +18,7 @@ services:
       DATABASE_URL: postgres://user:password@postgres:5432/example_service
       DB_POOL_MAX: 5
       DB_PREPARE: "true"
+      DB_TLS_MODE: disable
       SCHEDULER_ENABLED: "true"
       SCHEDULER_TIMEZONE: ${SCHEDULER_TIMEZONE:-UTC}
       REDIS_URL: redis://redis:6379
