@@ -11,7 +11,8 @@ import type { ScheduledTask } from './task';
  * export const scheduledTasks: ScheduledTask[] = [
  *   {
  *     name: 'notification-digest',
- *     cron: '0 * * * *',
+ *     cron: '0 8 * * *',
+ *     timezone: 'Asia/Jakarta',
  *     async run() {
  *       await enqueueJob('notification.digest', {});
  *     },
