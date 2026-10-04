@@ -80,6 +80,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
 COPY --from=builder --chown=appuser:appgroup /app/dist/server ./server
 COPY --from=builder --chown=appuser:appgroup /app/dist/worker ./worker
 COPY --from=builder --chown=appuser:appgroup /app/dist/scheduler ./scheduler
+COPY --from=builder --chown=appuser:appgroup /app/dist/job-dead ./job-dead
 COPY --from=builder --chown=appuser:appgroup /app/database/ ./database/
 
 USER appuser
