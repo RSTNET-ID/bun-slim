@@ -203,11 +203,26 @@ create = async (c: Context) => {
 - Migration runner memakai advisory transaction lock agar deployment paralel tidak mengeksekusi migration yang sama bersamaan.
 - `migrate:refresh` dilarang pada `APP_ENV=production`.
 - Jangan ubah migration yang sudah diaplikasikan ke production. Buat migration baru.
-- Seed data untuk referensi (categories, config) masuk di migration, bukan di service.
+- Migration baru hanya untuk schema. Reference/sample data baru masuk ke `database/seeders/*.seeder.ts`; jangan edit migration historis untuk memindahkan seed.
+- Seeder wajib idempotent dan transactional; production execution membutuhkan `--force`.
+
 
 ---
 
-## 14. Build & Binary Execution
+## 14. Scheduler
+
+- Scheduler menggunakan `Bun.cron()` di process `src/scheduler.ts`, bukan di HTTP server.
+- Semua cron expression dijalankan dengan timezone UTC secara eksplisit.
+- Scheduler menentukan **kapan** pekerjaan dijalankan; worker menangani durable/retryable execution.
+- Untuk pekerjaan panjang, retryable, atau punya side effect, scheduler sebaiknya hanya `enqueueJob()`.
+- Bun hanya menjamin no-overlap dalam satu process. Baseline production scheduler adalah satu replica.
+- Multi-replica scheduler membutuhkan distributed lease/leader election.
+- Jangan gunakan `setInterval()` sebagai pengganti calendar scheduling.
+- In-process cron tidak menjamin catch-up setelah downtime. Job bisnis yang tidak boleh terlewat harus memiliki durable reconciliation/catch-up strategy.
+
+---
+
+## 15. Build & Binary Execution
 
 - **Wajib berupa Standalone Binary Bun**: Perintah build `bun run build` harus melakukan proses kompilasi native menjadi single standalone binary executable (`bun build --compile --minify ./src/server.ts --outfile dist/server`).
 - Output kompilasi diletakkan di dalam folder `dist/` dan di-ignore oleh `.gitignore`.
@@ -215,7 +230,7 @@ create = async (c: Context) => {
 
 ---
 
-## 15. Routing & Route Inspection
+## 16. Routing & Route Inspection
 
 - **Trailing Slash Normalization**: Seluruh request ke endpoint dengan atau tanpa trailing slash (misal `/health/` vs `/health`) harus berjalan konsisten tanpa mengembalikan 404. Gunakan `trimTrailingSlash()` dari `hono/trailing-slash` pada `app.ts`.
 - **Base Root Endpoint Handling**: Base path (seperti `/` dan `/api/v1`) wajib menyediakan handler informasi status/discovery ringan (misal mengembalikan `sendSuccess`) agar tidak mengembalikan 404 saat dipanggil oleh browser atau load balancer.
