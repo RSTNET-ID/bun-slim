@@ -31,6 +31,7 @@ services:
       DB_CONNECTION_TIMEOUT_SECONDS: 10
       DB_MAX_LIFETIME_SECONDS: 0
       DB_PREPARE: "true"
+      DB_TLS_MODE: disable
     depends_on:
       postgres:
         condition: service_healthy
