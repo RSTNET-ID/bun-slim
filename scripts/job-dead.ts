@@ -52,7 +52,11 @@ function getOption(args: ParsedArgs, name: string): string | undefined {
 }
 
 function hasFlag(args: ParsedArgs, name: string): boolean {
-  return args.options.get(name) === true || typeof args.options.get(name) === 'string';
+  const value = args.options.get(name);
+  if (value === true) return true;
+  if (typeof value !== 'string') return false;
+
+  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
 }
 
 function parseBoundedInteger(
