@@ -33,6 +33,12 @@ const REQUIRED_FILES = [
   'docs/22-RELEASE-READINESS.md',
   'docs/23-SECRET-LOGGING-STANDARD.md',
   'docs/24-PRODUCTION-SECURITY-REVIEW.md',
+  'docs/25-SCHEDULER-STANDARD.md',
+  'src/scheduler.ts',
+  'src/scheduler/runner.ts',
+  'src/scheduler/registry.ts',
+  'database/seed.ts',
+  'database/seeders/20240101000000_example_categories.seeder.ts',
 ] as const;
 
 const REQUIRED_SCRIPTS = [
@@ -42,6 +48,10 @@ const REQUIRED_SCRIPTS = [
   'format:check',
   'test',
   'test:integration',
+  'seed',
+  'seed:create',
+  'build:scheduler',
+  'scheduler:dev',
   'audit:prod',
   'release:check',
 ] as const;
@@ -84,15 +94,26 @@ for (const pattern of ['.env', 'dist/', 'node_modules/']) {
 const envExample = await Bun.file('.env.example').text();
 for (const key of [
   'APP_ENV=',
+  'TZ=',
   'SERVICE_NAME=',
   'DATABASE_URL=',
   'DB_DRIVER=',
   'EXAMPLE_ROUTES_ENABLED=',
   'METRICS_ENABLED=',
+  'SCHEDULER_ENABLED=',
 ]) {
   if (!envExample.includes(key)) {
     failures.push(`.env.example must define: ${key}`);
   }
+}
+
+if (!envExample.includes('TZ=UTC')) {
+  failures.push('.env.example must force TZ=UTC');
+}
+
+const schedulerRunner = await Bun.file('src/scheduler/runner.ts').text();
+if (!schedulerRunner.includes('Bun.cron(') || !schedulerRunner.includes('tz: config.TZ')) {
+  failures.push('scheduler runner must use Bun.cron with explicit configured timezone');
 }
 
 const forbiddenEnvFragments = [
