@@ -13,7 +13,7 @@ Sebelum mengubah kode:
 8. Jangan menambahkan dependency/infrastruktur tanpa kebutuhan konkret.
 9. Hono hanya boleh berada di HTTP boundary.
 10. Business logic tidak boleh menerima `Hono Context`.
-11. PostgreSQL adalah database default, tetapi persistence layer tidak boleh mengunci domain/service ke PostgreSQL.
+11. Branch `main` adalah PostgreSQL-only; persistence layer tetap tidak boleh membocorkan detail PostgreSQL ke domain/service.
 12. Worker, bila diperlukan, menggunakan Bun native RedisClient + Redis Streams consumer group sebagai baseline.
 13. Scheduler, bila diperlukan, menggunakan dedicated `Bun.cron()` process; runtime/database tetap UTC, sedangkan jadwal memakai IANA timezone eksplisit dari `SCHEDULER_TIMEZONE` atau override per task. Jangan register cron di HTTP server.
 14. Service tanpa worker tidak wajib memakai Redis; jangan memasang worker/Redis hanya demi keseragaman.
@@ -27,6 +27,13 @@ Dependency direction default:
 `route -> handler -> service -> repository/adapter`
 
 Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
+
+## Database
+
+- `DB_DRIVER=postgres` adalah satu-satunya driver yang valid pada branch `main`.
+- Staging/production wajib memakai `DB_TLS_MODE=verify-full`.
+- Private/custom CA dapat diberikan melalui `DB_TLS_CA_FILE`.
+- Jangan melemahkan TLS production hanya demi kemudahan deployment.
 
 ## Outbound HTTP
 
@@ -70,6 +77,12 @@ Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
 - Jangan pernah sengaja mengirim secret ke logger; redaction adalah safety net, bukan pola penggunaan.
 - Jangan log seluruh `process.env`, provider config, credential object, Authorization, cookie, token, password, DB/Redis URL credential, atau private key.
 - Pertahankan recursive logger redaction dan test coverage-nya.
+
+## Outbox Reliability
+
+- Gunakan transactional outbox bila DB write wajib menghasilkan job/event dan kehilangan publish tidak dapat diterima.
+- Dispatcher dan worker tetap at-least-once; consumer harus idempotent.
+- Lihat `docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md`.
 
 ## Scheduler
 
