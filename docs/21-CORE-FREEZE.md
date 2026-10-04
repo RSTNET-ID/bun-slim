@@ -25,10 +25,12 @@ Core yang dipertahankan:
 - graceful shutdown/drain
 - Docker production baseline
 - CI quality/security/integration checks
+- optional Bun.cron scheduler baseline
+- optional database seeder runner
 
 ## Optional Components
 
-Redis worker tetap optional.
+Redis worker dan Bun.cron scheduler tetap optional.
 
 Komponen berikut **tidak masuk core secara default**:
 - ORM
@@ -37,7 +39,7 @@ Komponen berikut **tidak masuk core secara default**:
 - Kafka/RabbitMQ/NATS
 - Redis cache abstraction
 - circuit breaker framework
-- scheduler framework
+- advanced scheduler/orchestration framework
 - S3/object-storage SDK
 - email provider
 - websocket framework
@@ -62,6 +64,7 @@ Breaking change pada:
 - env semantics
 - database migration behavior
 - worker job contract
+- scheduler task contract
 - public helper contract
 
 harus:
