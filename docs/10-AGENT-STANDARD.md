@@ -95,7 +95,7 @@ Jangan memakai worker untuk request yang seharusnya synchronous sederhana.
 
 Jika calendar/time-based execution diperlukan:
 - gunakan dedicated `Bun.cron()` scheduler process
-- gunakan timezone UTC eksplisit
+- runtime/database tetap UTC; gunakan `SCHEDULER_TIMEZONE` atau `task.timezone` sebagai IANA timezone scheduler eksplisit
 - jangan register cron di HTTP server
 - scheduler menentukan waktu, worker menangani durable/retryable execution
 - default production scheduler = 1 replica
