@@ -104,6 +104,18 @@ Jika calendar/time-based execution diperlukan:
 
 Jangan memindahkan business logic ke scheduler callback.
 
+## Outbox / Event Reliability Agent
+
+Jika business transaction harus menghasilkan job/event:
+- jangan dual-write database lalu Redis secara terpisah
+- evaluasi transactional outbox
+- business write + outbox insert berada dalam transaction yang sama
+- dispatcher publish bersifat at-least-once
+- consumer wajib idempotent
+- definisikan retention, retry, stuck-row handling, dan backward-compatible event version
+
+Lihat `docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md`.
+
 ## Architecture Agent
 
 Bertanggung jawab pada:
