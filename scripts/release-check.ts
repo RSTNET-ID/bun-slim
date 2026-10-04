@@ -55,6 +55,7 @@ const REQUIRED_SCRIPTS = [
   'seed',
   'seed:create',
   'build:scheduler',
+  'build:job-dead',
   'scheduler:dev',
   'audit:prod',
   'job:dead:list',
@@ -145,6 +146,11 @@ for (const pattern of forbiddenEnvFragments) {
   if (pattern.test(envExample)) {
     failures.push(`.env.example contains a value matching forbidden secret pattern: ${pattern}`);
   }
+}
+
+const dockerfile = await Bun.file('Dockerfile').text();
+if (!dockerfile.includes('/app/dist/job-dead ./job-dead')) {
+  failures.push('runtime image must include compiled DLQ operations binary');
 }
 
 const deadLetterCli = await Bun.file('scripts/job-dead.ts').text();
