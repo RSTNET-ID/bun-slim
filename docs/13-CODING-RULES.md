@@ -212,7 +212,7 @@ create = async (c: Context) => {
 ## 14. Scheduler
 
 - Scheduler menggunakan `Bun.cron()` di process `src/scheduler.ts`, bukan di HTTP server.
-- Semua cron expression dijalankan dengan timezone UTC secara eksplisit.
+- Runtime/database tetap UTC, tetapi cron memakai `SCHEDULER_TIMEZONE` atau `task.timezone` sebagai IANA timezone eksplisit.
 - Scheduler menentukan **kapan** pekerjaan dijalankan; worker menangani durable/retryable execution.
 - Untuk pekerjaan panjang, retryable, atau punya side effect, scheduler sebaiknya hanya `enqueueJob()`.
 - Bun hanya menjamin no-overlap dalam satu process. Baseline production scheduler adalah satu replica.
