@@ -96,38 +96,45 @@ export class SchedulerRunner {
     const controller = new AbortController();
     const scheduledAt = new Date();
     const startedAt = performance.now();
+    const run = this.runTask(task, controller, scheduledAt, startedAt);
 
     this.activeControllers.add(controller);
-
-    let run: Promise<void>;
-    run = (async () => {
-      try {
-        await task.run({
-          scheduledAt,
-          signal: controller.signal,
-        });
-
-        logger.info('Scheduler task completed', {
-          task: task.name,
-          cron: task.cron,
-          scheduled_at: scheduledAt.toISOString(),
-          duration_ms: Math.round(performance.now() - startedAt),
-        });
-      } catch (error: unknown) {
-        logger.error('Scheduler task failed', {
-          task: task.name,
-          cron: task.cron,
-          scheduled_at: scheduledAt.toISOString(),
-          duration_ms: Math.round(performance.now() - startedAt),
-          error: error instanceof Error ? error.message : String(error),
-        });
-      } finally {
-        this.activeControllers.delete(controller);
-        this.activeRuns.delete(run);
-      }
-    })();
-
     this.activeRuns.add(run);
-    await run;
+
+    try {
+      await run;
+    } finally {
+      this.activeControllers.delete(controller);
+      this.activeRuns.delete(run);
+    }
+  }
+
+  private async runTask(
+    task: ScheduledTask,
+    controller: AbortController,
+    scheduledAt: Date,
+    startedAt: number
+  ): Promise<void> {
+    try {
+      await task.run({
+        scheduledAt,
+        signal: controller.signal,
+      });
+
+      logger.info('Scheduler task completed', {
+        task: task.name,
+        cron: task.cron,
+        scheduled_at: scheduledAt.toISOString(),
+        duration_ms: Math.round(performance.now() - startedAt),
+      });
+    } catch (error: unknown) {
+      logger.error('Scheduler task failed', {
+        task: task.name,
+        cron: task.cron,
+        scheduled_at: scheduledAt.toISOString(),
+        duration_ms: Math.round(performance.now() - startedAt),
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 }
