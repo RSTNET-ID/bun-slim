@@ -43,7 +43,7 @@ Boleh membuat:
 - error handling
 - request ID
 - structured logging
-- PostgreSQL baseline client
+- MySQL 8 baseline client
 - testing baseline
 - Docker
 - docs templates
@@ -62,7 +62,7 @@ kecuali requirement service membutuhkannya.
 
 ## Database Agent
 
-Default: PostgreSQL.
+Default pada branch `mysql-v8`: MySQL 8.
 
 Tanggung jawab:
 - schema
@@ -73,9 +73,9 @@ Tanggung jawab:
 - connection pool
 - constraints
 
-Desain harus menjaga business/service layer agar tidak terkunci pada PostgreSQL.
+Desain harus menjaga business/service layer agar tidak terkunci pada detail MySQL 8.
 
-Jika project berpindah ke MySQL/MariaDB, perubahan harus dilokalisasi sebanyak mungkin di persistence/config layer.
+Query, migration, locking, dan index strategy yang dialect-specific harus dilokalisasi di persistence/config layer.
 
 ## Worker Agent
 

@@ -17,7 +17,7 @@ Core yang dipertahankan:
 - request ID
 - global error mapping
 - health/live/ready
-- PostgreSQL baseline via Bun.SQL
+- MySQL 8 baseline via Bun.SQL
 - migration runner
 - testing baseline
 - outbound HTTP resilience

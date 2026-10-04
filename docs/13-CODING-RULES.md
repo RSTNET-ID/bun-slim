@@ -170,7 +170,7 @@ create = async (c: Context) => {
 
 - Unit test: business logic/service tanpa HTTP dan tanpa database nyata.
 - Contract test: HTTP → handler → service → in-memory repository untuk memvalidasi API contract.
-- Integration test: repository/transaction terhadap PostgreSQL nyata.
+- Integration test: repository/transaction terhadap MySQL 8 nyata.
 - Setiap test file harus **terisolasi**: gunakan instance baru per `beforeEach`, bukan shared state.
 - Cover minimal: success path, validation failure, not found, business failure.
 - Beri nama test yang mendeskripsikan behavior, bukan implementasi:
@@ -199,12 +199,13 @@ create = async (c: Context) => {
 - Setiap migration wajib mengekspor `up(sql)` dan `down(sql)`.
 - `down` harus benar-benar dapat memutar balik perubahan `up`.
 - Nama file: `<timestamp_14digit>_<deskripsi_singkat>.ts`.
-- PostgreSQL migration dijalankan atomic dalam transaction bersama pencatatan `schema_migrations`.
-- Migration runner memakai advisory transaction lock agar deployment paralel tidak mengeksekusi migration yang sama bersamaan.
+- MySQL DDL dapat melakukan implicit commit; migration harus retry-safe dan tidak boleh mengandalkan rollback transactional untuk schema change.
+- Migration runner memakai MySQL named lock (`GET_LOCK`) pada dedicated reserved connection agar deployment paralel tidak mengeksekusi migration yang sama bersamaan.
 - `migrate:refresh` dilarang pada `APP_ENV=production`.
 - Jangan ubah migration yang sudah diaplikasikan ke production. Buat migration baru.
-- Migration baru hanya untuk schema. Reference/sample data baru masuk ke `database/seeders/*.seeder.ts`; jangan edit migration historis untuk memindahkan seed.
-- Seeder wajib idempotent dan transactional; production execution membutuhkan `--force`.
+- Migration baru hanya untuk perubahan schema. Seed/reference data baru masuk ke `database/seeders/*.seeder.ts`; migration historis yang sudah pernah diterapkan tidak diedit untuk memindahkan seed.
+- Seeder wajib idempotent, transactional untuk DML, dan production execution membutuhkan `--force`.
+- Runtime dan database menggunakan UTC sebagai baseline; jangan mengandalkan timezone host.
 
 
 ---
@@ -213,12 +214,12 @@ create = async (c: Context) => {
 
 - Scheduler menggunakan `Bun.cron()` di process `src/scheduler.ts`, bukan di HTTP server.
 - Runtime/database tetap UTC, tetapi cron memakai `SCHEDULER_TIMEZONE` atau `task.timezone` sebagai IANA timezone eksplisit.
-- Scheduler menentukan **kapan** pekerjaan dijalankan; worker menangani durable/retryable execution.
-- Untuk pekerjaan panjang, retryable, atau punya side effect, scheduler sebaiknya hanya `enqueueJob()`.
-- Bun hanya menjamin no-overlap dalam satu process. Baseline production scheduler adalah satu replica.
-- Multi-replica scheduler membutuhkan distributed lease/leader election.
-- Jangan gunakan `setInterval()` sebagai pengganti calendar scheduling.
-- In-process cron tidak menjamin catch-up setelah downtime. Job bisnis yang tidak boleh terlewat harus memiliki durable reconciliation/catch-up strategy.
+- Scheduler menentukan kapan; worker menangani durable/retryable execution.
+- Untuk long-running atau side-effect work, scheduler sebaiknya hanya `enqueueJob()`.
+- Bun hanya menjamin no-overlap per process. Baseline production scheduler adalah satu replica.
+- Multi-replica scheduler wajib memiliki distributed lease/leader election.
+- In-process cron tidak menjamin catch-up saat process downtime.
+- Jangan gunakan `setInterval()` untuk calendar scheduling.
 
 
 ---

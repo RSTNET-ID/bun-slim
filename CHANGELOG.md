@@ -4,21 +4,32 @@ Semua perubahan penting pada Bun Slim dicatat di file ini.
 
 Format mengikuti semantic versioning.
 
-## Unreleased
+## Unreleased - mysql-v8
 
 ### Added
 - DLQ operational CLI for bounded list/show, atomic replay, and retention purge
 - transactional outbox reliability standard for DB-write + Redis job atomicity
-- transactional, idempotent PostgreSQL database seeder with advisory locking and production `--force` guard
-- dedicated Bun.cron scheduler process, registry, validation tests, standalone binary, and Compose overlay
-- UTC runtime baseline for application, worker, PostgreSQL development service, and scheduler
+- dedicated `mysql-v8` branch based on `main`
+- MySQL 8 Bun.SQL baseline and development Compose service
+- MySQL 8 migration runner with named connection lock
+- MySQL 8 integration CI and configuration security tests
+- dedicated Bun.cron scheduler process, registry, runner, tests, and Compose overlay
 
 ### Changed
 - worker job envelope validation is shared by runtime and DLQ replay tooling
-- main database config is PostgreSQL-only and staging/production require verified TLS
-- scheduler responsibilities are explicitly separated from worker durable execution
-- coding rules now require new reference/sample data to use seeders rather than new migrations
-- release readiness checks guard scheduler, seeder, and UTC baseline
+- PostgreSQL-specific schema/query syntax replaced with MySQL 8 equivalents
+- UUID baseline uses application-generated `CHAR(36)` values
+- DML `RETURNING` paths replaced with MySQL-compatible write/read handling
+- database documentation and agent rules aligned to MySQL 8
+- production database TLS is enforced with `DB_TLS_MODE=verify-full`
+- example seed UUIDs are shared between in-memory tests and MySQL fixtures
+- repository create/update readback is transactionally consistent
+- cursor queries use index-friendly MySQL query shapes
+- migration runner rejects MariaDB/MySQL < 8 and release checks guard against PostgreSQL syntax regressions
+- UTC is enforced across application, worker, container, and MySQL server runtime
+- transactional, idempotent database seeder runner with production `--force` guard
+- dedicated reference category seeder added; historical baseline migration remains immutable for compatibility
+- worker/scheduler responsibility rules aligned with PostgreSQL main
 
 ## 1.0.0 - 2026-10-01
 

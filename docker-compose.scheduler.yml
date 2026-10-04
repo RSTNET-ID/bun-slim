@@ -14,16 +14,17 @@ services:
       SERVICE_NAME: example-service
       LOG_LEVEL: info
       SHUTDOWN_TIMEOUT_MS: 15000
-      DB_DRIVER: postgres
-      DATABASE_URL: postgres://user:password@postgres:5432/example_service
+      DB_DRIVER: mysql
+      DATABASE_URL: mysql://user:password@mysql:3306/example_service
       DB_POOL_MAX: 5
       DB_PREPARE: "true"
       DB_TLS_MODE: disable
+      DB_ALLOW_PUBLIC_KEY_RETRIEVAL: "true"
       SCHEDULER_ENABLED: "true"
       SCHEDULER_TIMEZONE: ${SCHEDULER_TIMEZONE:-UTC}
       REDIS_URL: redis://redis:6379
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redis:
         condition: service_healthy

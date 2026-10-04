@@ -2,20 +2,20 @@
 
 ## Default Database
 
-Database starter: PostgreSQL.
+Database starter pada branch `mysql-v8`: MySQL 8.
 
-Connection config default menggunakan satu `DATABASE_URL` atau parameter terstruktur equivalent.
-
-Contoh:
+Connection config menggunakan `DATABASE_URL` dengan driver yang dikunci ke MySQL:
 
 ```env
-DB_DRIVER=postgres
-DATABASE_URL=postgres://user:password@postgres:5432/service_db
+DB_DRIVER=mysql
+DATABASE_URL=mysql://user:password@mysql:3306/service_db
 ```
+
+Branch `main` tetap menjadi baseline PostgreSQL. Branch ini tidak dirancang sebagai runtime switch antara dua dialect.
 
 ## Portability
 
-Database driver tidak boleh tersebar ke seluruh business layer.
+Database driver tidak boleh tersebar ke business layer.
 
 Target desain:
 
@@ -27,18 +27,18 @@ Repository
 Database Client
 ```
 
-Saat migrasi PostgreSQL -> MySQL, area perubahan idealnya terbatas pada:
-- database client
+Area yang database-specific dibatasi pada:
+- database client/config
 - SQL/repository yang dialect-specific
 - migration
-- test integration database
-- config
+- index strategy
+- integration test database
 
-Bukan pada handler/service/domain secara keseluruhan.
+Handler, service, dan domain contract tidak boleh berubah hanya karena database berubah.
 
 ## SQL
 
-Gunakan parameterized query.
+Gunakan parameterized query melalui Bun.SQL tagged template.
 
 Hindari dynamic SQL dari user input tanpa allow-list.
 
@@ -47,6 +47,8 @@ Hindari dynamic SQL dari user input tanpa allow-list.
 Service yang memiliki multi-write invariant harus menentukan transaction boundary secara eksplisit.
 
 Transaction context harus diteruskan konsisten ke semua repository yang ikut dalam transaction.
+
+MySQL DDL dapat melakukan implicit commit. Jangan menyamakan transaction behavior DML dengan migration DDL.
 
 ## Index
 

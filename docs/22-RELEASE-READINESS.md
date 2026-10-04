@@ -16,7 +16,7 @@ bun run release:check
 ```
 
 CI juga harus lulus:
-- PostgreSQL migration + integration
+- MySQL 8 migration + integration
 - Redis integration
 - Compose validation for base, worker, and scheduler overlays
 - production Docker build
@@ -46,7 +46,7 @@ Pastikan:
 ## Data Gate
 
 Pastikan:
-- migration baru atomic sesuai database baseline
+- migration MySQL 8 retry-safe dan sadar implicit DDL commit
 - reference/sample data baru memakai idempotent seeder
 - scheduler task names/cron expressions tervalidasi
 - production migration tidak diedit ulang

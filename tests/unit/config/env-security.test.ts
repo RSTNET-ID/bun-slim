@@ -4,8 +4,8 @@ import { envSchema } from '@/config/env';
 const productionBase = {
   APP_ENV: 'production',
   SERVICE_NAME: 'security-test-service',
-  DATABASE_URL: 'postgres://app_user:strong-runtime-secret@db.internal:5432/service',
-  DB_DRIVER: 'postgres',
+  DATABASE_URL: 'mysql://app_user:strong-runtime-secret@db.internal:3306/service',
+  DB_DRIVER: 'mysql',
   DB_TLS_MODE: 'verify-full',
   TZ: 'UTC',
 };
@@ -38,7 +38,6 @@ describe('production environment security guards', () => {
       ...productionBase,
       EXAMPLE_ROUTES_ENABLED: 'true',
     });
-
     expect(result.success).toBe(false);
   });
 
@@ -47,7 +46,6 @@ describe('production environment security guards', () => {
       ...productionBase,
       METRICS_ENABLED: 'true',
     });
-
     expect(result.success).toBe(false);
   });
 
@@ -57,34 +55,38 @@ describe('production environment security guards', () => {
       METRICS_ENABLED: 'true',
       METRICS_TOKEN: 'a-strong-metrics-token-value-123456',
     });
-
     expect(result.success).toBe(true);
   });
 
   it('rejects known placeholder database credentials in production', () => {
     const result = envSchema.safeParse({
       ...productionBase,
-      DATABASE_URL: 'postgres://user:password@db.internal:5432/service',
+      DATABASE_URL: 'mysql://user:password@db.internal:3306/service',
     });
-
     expect(result.success).toBe(false);
   });
 
-  it('rejects unverified PostgreSQL TLS in production', () => {
+  it('rejects unverified database TLS in production', () => {
     const result = envSchema.safeParse({
       ...productionBase,
       DB_TLS_MODE: 'require',
     });
-
     expect(result.success).toBe(false);
   });
 
-  it('rejects a non-PostgreSQL database URL', () => {
+  it('rejects insecure public-key retrieval in production', () => {
     const result = envSchema.safeParse({
       ...productionBase,
-      DATABASE_URL: 'mysql://app_user:strong-runtime-secret@db.internal:3306/service',
+      DB_ALLOW_PUBLIC_KEY_RETRIEVAL: 'true',
     });
+    expect(result.success).toBe(false);
+  });
 
+  it('rejects a non-MySQL database URL', () => {
+    const result = envSchema.safeParse({
+      ...productionBase,
+      DATABASE_URL: 'postgres://app_user:strong-runtime-secret@db.internal:5432/service',
+    });
     expect(result.success).toBe(false);
   });
 });

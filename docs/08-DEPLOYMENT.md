@@ -15,7 +15,7 @@ HTTP-only service:
 
 ```text
 app
-postgres
+mysql
 ```
 
 Worker-enabled service:
@@ -23,7 +23,7 @@ Worker-enabled service:
 ```text
 app
 worker
-postgres
+mysql
 redis
 ```
 
@@ -74,9 +74,9 @@ Pending Redis Stream message yang belum di-ACK dapat direclaim consumer lain set
 
 ## Database
 
-PostgreSQL default.
+MySQL 8 default.
 
-Penggantian database harus terjadi di persistence boundary. Query/migration PostgreSQL-specific tidak harus dipaksa portable secara sintaksis.
+Branch ini khusus MySQL 8. Database-specific query, migration, locking, dan index strategy tetap berada di persistence boundary.
 
 ## Redis
 

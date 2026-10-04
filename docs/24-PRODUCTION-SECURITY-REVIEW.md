@@ -22,7 +22,7 @@ Baseline surfaces:
 - public/private HTTP API depending on deployment
 - health endpoints
 - optional metrics endpoint
-- PostgreSQL
+- MySQL 8
 - optional Redis worker
 - outbound provider/internal HTTP
 - CI/CD and container supply chain
@@ -30,7 +30,7 @@ Baseline surfaces:
 Trust boundaries:
 - client -> reverse proxy -> application
 - authenticated principal -> tenant scope
-- application -> PostgreSQL
+- application -> MySQL 8
 - producer/worker -> Redis Streams
 - application -> external/internal provider
 - CI -> third-party GitHub Actions
@@ -173,7 +173,9 @@ Severity becomes P1/P0 depending on actual deployment and credentials reachable 
 
 ### Database and Redis network security
 
-Repository Compose does not publish PostgreSQL or Redis ports, which is a safe local baseline.
+Repository Compose does not publish MySQL 8 or Redis ports, which is a safe local baseline.
+
+Production MySQL configuration now requires `DB_TLS_MODE=verify-full`; `DB_ALLOW_PUBLIC_KEY_RETRIEVAL=true` is rejected outside development/test. A private/custom CA can be supplied with `DB_TLS_CA_FILE`.
 
 Production must still verify:
 - DB/Redis bind/listen
@@ -218,7 +220,7 @@ Bun Slim service
   - body/time limits
   - safe errors/log redaction
         |
-        +----> PostgreSQL private network
+        +----> MySQL 8 private network
         |
         +----> Redis private network (optional)
         |
@@ -237,7 +239,7 @@ Repository:
 - `bun run test`
 - `bun run build`
 - `bun run release:check`
-- PostgreSQL integration CI
+- MySQL 8 integration CI
 - Redis integration CI
 - production container smoke test
 

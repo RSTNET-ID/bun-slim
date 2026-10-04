@@ -1,48 +1,94 @@
-# Bun + Hono Microservice Starter
+# Bun + Hono Microservice Starter — MySQL 8
 
-Starter microservice ringan menggunakan Bun native + Hono.
+Branch `mysql-v8` adalah varian Bun Slim yang menggunakan **MySQL 8** sebagai database baseline.
 
 ## Baseline
 
 - **Runtime**: Bun 1.4+
 - **HTTP Framework**: Hono
 - **Language**: TypeScript
-- **Database**: Bun.SQL, PostgreSQL default
+- **Database**: Bun.SQL + MySQL 8
 - **Validation**: Zod
 - **Testing**: `bun:test`
 - **Container**: Docker multi-stage build, non-root
 
-Branch `main` adalah baseline PostgreSQL-only. Varian MySQL 8 berada di branch `mysql-v8`; handler/service contract tetap dijaga sama, sedangkan persistence boundary tetap database-specific.
+Branch ini sengaja **MySQL-only**. Branch `main` tetap menjadi baseline PostgreSQL.
 
 ## Quick Start
 
 ```bash
 bun install
 cp .env.example .env
+docker compose up -d mysql
+bun run migrate:up
+bun run seed
 bun run dev
 ```
 
-### Database
+Untuk Docker penuh:
 
-Development dapat memakai TLS disabled pada jaringan lokal/container:
-
-```env
-DB_DRIVER=postgres
-DB_TLS_MODE=disable
-# DB_TLS_CA_FILE=/run/secrets/postgres-ca.pem
+```bash
+docker compose up --build
 ```
 
-Staging/production wajib memakai `DB_TLS_MODE=verify-full`. Bun.SQL mendukung mode TLS PostgreSQL dan custom CA melalui `DB_TLS_CA_FILE`.
+## Database
+
+Default development config:
+
+```env
+TZ=UTC
+DB_DRIVER=mysql
+DATABASE_URL=mysql://user:password@127.0.0.1:3306/example_service
+DB_TLS_MODE=disable
+# DB_TLS_CA_FILE=/run/secrets/mysql-ca.pem
+DB_ALLOW_PUBLIC_KEY_RETRIEVAL=false
+```
+
+MySQL 8 memakai `caching_sha2_password` secara default. Bun menolak public-key retrieval pada koneksi non-TLS kecuali diaktifkan secara eksplisit. Compose development mengaktifkannya karena traffic hanya berada pada jaringan lokal/container. Staging dan production mewajibkan `DB_TLS_MODE=verify-full` dan menolak `DB_ALLOW_PUBLIC_KEY_RETRIEVAL=true`. Untuk private/custom CA, set `DB_TLS_CA_FILE`.
 
 ### Migration
 
 ```bash
 bun run migrate:up
-bun run seed
 bun run migrate:status
+bun run migrate:down
 ```
 
-### Tests
+Migration runner memakai MySQL named lock `GET_LOCK()` pada dedicated reserved connection agar dua deployment tidak mengeksekusi migration bersamaan.
+
+Perlu diingat bahwa MySQL dapat melakukan implicit commit pada DDL. Karena itu migration harus dibuat retry-safe dan tidak boleh mengandalkan rollback transaksi DDL seperti pada PostgreSQL.
+
+### Seeder
+
+Seeder terpisah dari migration dan harus idempotent:
+
+```bash
+bun run seed
+bun run seed:run
+bun run seed:run -- example_categories
+bun run seed:create feature_flags
+```
+
+Production membutuhkan konfirmasi eksplisit:
+
+```bash
+bun run seed:run -- --force
+```
+
+Setiap file `.seeder.ts` dijalankan dalam transaction. Runner juga memakai MySQL named lock agar dua proses seed tidak berjalan bersamaan.
+
+## MySQL-specific decisions
+
+- UUID disimpan sebagai `CHAR(36) CHARACTER SET ascii COLLATE ascii_bin`
+- UUID dibuat oleh application dengan `crypto.randomUUID()`
+- waktu disimpan sebagai `DATETIME(3)`
+- `updated_at` menggunakan `ON UPDATE CURRENT_TIMESTAMP(3)`
+- `RETURNING` tidak digunakan karena MySQL 8 tidak mendukung DML `RETURNING`
+- create/update melakukan `SELECT` setelah write bila entity hasil write dibutuhkan
+- delete menggunakan `affectedRows`
+- index migration memeriksa `information_schema.statistics` sebelum create/drop
+
+## Tests
 
 Unit + HTTP contract:
 
@@ -50,89 +96,33 @@ Unit + HTTP contract:
 bun run test
 ```
 
-`bun test` tetap dapat dipakai untuk discovery semua test; database integration akan skip bila `DATABASE_URL` tidak tersedia.
-
-Per layer:
+Integration membutuhkan MySQL 8 yang sudah dimigrasi dan di-seed:
 
 ```bash
-bun run test:unit
-bun run test:contract
+export TZ=UTC
+export RUN_MYSQL_INTEGRATION=true
+export DB_DRIVER=mysql
+export DATABASE_URL=mysql://user:password@127.0.0.1:3306/example_service
+export DB_TLS_MODE=disable
+export DB_ALLOW_PUBLIC_KEY_RETRIEVAL=true
+
+bun run seed
 bun run test:integration
 ```
 
-`test:integration` membutuhkan PostgreSQL test database yang sudah dimigrasi dan reference seeder dapat dijalankan dengan `bun run seed`.
-
-### Quality
+## Quality
 
 ```bash
 bun run format:check
 bun run lint
 bun run typecheck
 bun run build
+bun run release:check
 ```
-
-### List Routes
-
-```bash
-bun route:list
-```
-
-### Docker
-
-```bash
-docker compose up --build
-```
-
-## Structure
-
-```text
-src/
-├── app.ts
-├── server.ts
-├── config/
-├── database/
-├── shared/
-├── routes/
-└── modules/
-
-tests/
-├── unit/
-├── contract/
-└── integration/
-
-database/
-├── migrate.ts
-├── seed.ts
-├── migrations/
-└── seeders/
-```
-
-Lihat `docs/` dan `AGENTS.md` untuk standar architecture, database, security, testing, deployment, dan coding-agent.
 
 ## Optional Redis Worker
 
-Core starter tidak membutuhkan Redis.
-
-Bila service membutuhkan background job, tersedia optional worker pack berbasis Bun native Redis client + Redis Streams.
-
-Build menghasilkan empat binary:
-
-```text
-dist/server
-dist/worker
-dist/scheduler
-dist/job-dead
-```
-
-Jalankan worker lokal:
-
-```bash
-WORKER_ENABLED=true \
-REDIS_URL=redis://127.0.0.1:6379 \
-bun run worker:dev
-```
-
-Compose dengan Redis + worker:
+Worker tetap optional dan menggunakan Bun native Redis client + Redis Streams.
 
 ```bash
 docker compose \
@@ -141,136 +131,26 @@ docker compose \
   up --build
 ```
 
-Register job handler di `src/worker/registry.ts` dan enqueue melalui `@/worker/producer`.
-
-Lihat `docs/12-WORKER-REDIS-STANDARD.md` untuk delivery semantics, retry, dead-letter, stale reclaim, idempotency, dan graceful shutdown.
-
 ## Optional Bun.cron Scheduler
 
-Scheduler berjalan sebagai process terpisah dari HTTP server dan worker.
+Scheduler menggunakan dedicated process `src/scheduler.ts`, bukan HTTP server.
 
-Daftarkan task di `src/scheduler/registry.ts`. Untuk pekerjaan durable/retryable, scheduler sebaiknya hanya memanggil `enqueueJob()` lalu worker yang mengeksekusi business work.
+Register task di `src/scheduler/registry.ts`. Untuk pekerjaan durable/retryable, scheduler sebaiknya enqueue ke worker.
 
 ```bash
 SCHEDULER_ENABLED=true SCHEDULER_TIMEZONE=Asia/Jakarta bun run scheduler:dev
 ```
 
-Runtime/database tetap UTC. Scheduler default memakai `SCHEDULER_TIMEZONE=UTC`, dapat diubah misalnya menjadi `Asia/Jakarta`, dan setiap task boleh memiliki `timezone` sendiri. Baseline production tetap satu scheduler replica.
-
-Compose template setelah minimal satu task terdaftar:
+Compose template:
 
 ```bash
 docker compose \
   -f docker-compose.yml \
   -f docker-compose.scheduler.yml \
   --profile scheduler \
-  up --build scheduler redis postgres
+  up --build scheduler redis mysql
 ```
 
-Lihat `docs/25-SCHEDULER-STANDARD.md`.
+Runtime/database tetap UTC. Scheduler default memakai `SCHEDULER_TIMEZONE=UTC`, dapat diubah menjadi IANA timezone seperti `Asia/Jakarta`, dan setiap task boleh override `timezone`. Default production replica count adalah 1. Lihat `docs/25-SCHEDULER-STANDARD.md`.
 
-## Database Seeder
-
-Reference/sample data baru dikelola melalui seeder terpisah:
-
-```bash
-bun run seed
-bun run seed:run -- example_categories
-bun run seed:create roles
-```
-
-Seeder bersifat idempotent, transactional, memakai PostgreSQL advisory lock, dan membutuhkan `--force` di production. Migration historis tetap immutable.
-
-## Dead-Letter Operations
-
-Worker DLQ memiliki CLI operasional bounded:
-
-```bash
-bun run job:dead:list -- --limit=20
-bun run job:dead:show -- <stream-id>
-bun run job:dead:replay -- <stream-id>
-bun run job:dead:purge -- --older-than=30d --limit=100 --force
-```
-
-Payload disembunyikan pada `show` kecuali `--payload` diberikan. Replay production membutuhkan `--force`, mempertahankan `job_id`, mereset `attempt=1`, dan hanya boleh dilakukan bila handler job masih terdaftar.
-
-Production image juga membawa standalone binary sehingga tidak membutuhkan Bun runtime/source tree:
-
-```bash
-./job-dead list --limit=20
-./job-dead show <stream-id>
-./job-dead replay <stream-id> --force
-./job-dead purge --older-than=30d --limit=100 --force
-```
-
-Lihat `docs/12-WORKER-REDIS-STANDARD.md`.
-
-## Transactional Outbox
-
-Jika business database write **harus** menghasilkan background job/event dan kehilangan publish tidak dapat diterima, jangan mengandalkan pola `commit DB -> enqueue Redis` sebagai atomic operation.
-
-Gunakan transactional outbox sesuai `docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md`. Direct `enqueueJob()` tetap tepat untuk pekerjaan yang tidak perlu atomic dengan business DB write.
-
-## Resilience, Metrics, and Production Hardening
-
-Starter menyediakan baseline tambahan tanpa dependency runtime baru:
-
-- resilient outbound HTTP melalui `fetchWithPolicy()`
-- timeout + bounded retry
-- mandatory Idempotency-Key untuk retried POST/PATCH
-- request ID propagation
-- optional Prometheus-compatible `/metrics`
-- low-cardinality HTTP/outbound metrics
-- API security headers
-- Bun request body hard limit
-- explicit server idle timeout
-- bounded graceful shutdown
-- production dependency audit di CI
-
-Dokumentasi:
-- `docs/14-OUTBOUND-HTTP-STANDARD.md`
-- `docs/15-METRICS-STANDARD.md`
-- `docs/16-PRODUCTION-HARDENING.md`
-
-## Identity, Lifecycle, and Container Safety
-
-Baseline tambahan:
-- tenant header membutuhkan authorization callback
-- rate limiter tidak mempercayai forwarded IP header secara default
-- readiness berubah 503 saat shutdown/drain dimulai
-- configurable drain propagation delay
-- production runtime image tidak lagi membawa Bun runtime
-- non-root + no-new-privileges + dropped capabilities
-- read-only root filesystem + bounded PID count
-- Docker image build dan liveness smoke test di CI
-
-Dokumentasi:
-- `docs/17-IDENTITY-TENANT-BOUNDARY.md`
-- `docs/18-DRAIN-READINESS-STANDARD.md`
-- `docs/19-CONTAINER-RUNTIME-HARDENING.md`
-
-## Core v1 Status
-
-Phase 1–12 selesai. Core Bun Slim sekarang **feature-frozen** untuk baseline v1.
-
-Sebelum release/tag:
-
-```bash
-bun run format:check
-bun run lint
-bun run typecheck
-bun run audit:prod
-bun run test
-bun run build
-bun run release:check
-```
-
-Dokumentasi penutup:
-- `docs/20-SERVICE-BOOTSTRAP.md`
-- `docs/21-CORE-FREEZE.md`
-- `docs/22-RELEASE-READINESS.md`
-- `docs/23-SECRET-LOGGING-STANDARD.md`
-- `SECURITY.md`
-- `CHANGELOG.md`
-
-Setelah v1, tambahan framework/infrastruktur baru sebaiknya masuk service-specific implementation atau optional pack, bukan core starter.
+Lihat `docs/` dan `AGENTS.md` untuk architecture, database, security, testing, deployment, dan coding rules.

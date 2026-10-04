@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, mysql-v8]
 
 permissions:
   contents: read
@@ -45,33 +45,37 @@ jobs:
       - name: Release readiness
         run: bun run release:check
 
-  postgres-integration:
+  mysql-integration:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
-      postgres:
-        image: postgres:16-alpine
+      mysql:
+        image: mysql:8.0
         env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: example_service
+          MYSQL_USER: user
+          MYSQL_PASSWORD: password
+          MYSQL_DATABASE: example_service
+          MYSQL_ROOT_PASSWORD: root-password
         ports:
-          - 5432:5432
+          - 3306:3306
         options: >-
-          --health-cmd="pg_isready -U user -d example_service"
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uuser -ppassword --silent"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=10
+          --health-start-period=20s
     env:
       APP_ENV: test
       TZ: UTC
       SERVICE_NAME: bun-slim-ci
       LOG_LEVEL: warn
-      DB_DRIVER: postgres
-      DATABASE_URL: postgres://user:password@127.0.0.1:5432/example_service
+      DB_DRIVER: mysql
+      DATABASE_URL: mysql://user:password@127.0.0.1:3306/example_service
       DB_POOL_MAX: 5
       DB_PREPARE: "true"
-      RUN_POSTGRES_INTEGRATION: "true"
+      DB_TLS_MODE: disable
+      DB_ALLOW_PUBLIC_KEY_RETRIEVAL: "true"
+      RUN_MYSQL_INTEGRATION: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -90,7 +94,7 @@ jobs:
       - name: Seed reference data
         run: bun run seed
 
-      - name: PostgreSQL integration tests
+      - name: MySQL 8 integration tests
         run: bun run test:integration
 
   redis-integration:
@@ -110,8 +114,8 @@ jobs:
       APP_ENV: test
       SERVICE_NAME: bun-slim-ci
       LOG_LEVEL: warn
-      DB_DRIVER: postgres
-      DATABASE_URL: postgres://user:password@127.0.0.1:5432/unused
+      DB_DRIVER: mysql
+      DATABASE_URL: mysql://user:password@127.0.0.1:3306/unused
       REDIS_URL: redis://127.0.0.1:6379
       RUN_REDIS_INTEGRATION: "true"
     steps:
@@ -152,7 +156,7 @@ jobs:
 
       - name: Smoke test liveness
         run: |
-          docker run -d --name bun-slim-ci             -p 127.0.0.1:3000:3000             -e APP_ENV=test             -e DATABASE_URL=postgres://user:password@127.0.0.1:5432/unused             bun-slim:ci
+          docker run -d --name bun-slim-ci             -p 127.0.0.1:3000:3000             -e APP_ENV=test             -e DB_DRIVER=mysql             -e DATABASE_URL=mysql://user:password@127.0.0.1:3306/unused             bun-slim:ci
 
           trap 'docker rm -f bun-slim-ci >/dev/null 2>&1 || true' EXIT
 

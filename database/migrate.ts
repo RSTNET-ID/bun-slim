@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
-import type { SQL, TransactionSQL } from 'bun';
+import type { ReservedSQL, SQL } from 'bun';
 import { readdir } from 'node:fs/promises';
 import { join, basename } from 'node:path';
 import { config } from '../src/config';
 import { getDbClient, closeDbClient } from '../src/database/client';
 
-type MigrationExecutor = SQL | TransactionSQL;
+type MigrationExecutor = SQL | ReservedSQL;
 
 interface MigrationModule {
   up: (sql: MigrationExecutor) => Promise<void>;
@@ -17,19 +17,27 @@ const MIGRATION_LOCK_KEY = 'bun-slim-schema-migrations';
 const sql = getDbClient();
 
 function assertSupportedDriver(): void {
-  if (config.DB_DRIVER !== 'postgres') {
-    throw new Error(
-      `Migration runner currently supports PostgreSQL only. DB_DRIVER=${config.DB_DRIVER}`
-    );
+  if (config.DB_DRIVER !== 'mysql') {
+    throw new Error(`Migration runner supports MySQL 8 only. DB_DRIVER=${config.DB_DRIVER}`);
+  }
+}
+
+async function assertMysql8(): Promise<void> {
+  const rows = await sql<{ version: string }[]>`SELECT VERSION() AS version`;
+  const version = rows[0]?.version ?? '';
+  const major = Number.parseInt(version.split('.')[0] ?? '', 10);
+
+  if (/mariadb/i.test(version) || !Number.isInteger(major) || major < 8) {
+    throw new Error(`MySQL 8+ is required. Connected server reports version "${version || 'unknown'}"`);
   }
 }
 
 async function ensureMigrationTable(): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS schema_migrations (
-      version    TEXT PRIMARY KEY,
-      applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
+      version    VARCHAR(255) PRIMARY KEY,
+      applied_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
   `;
 }
 
@@ -55,11 +63,32 @@ async function markReverted(version: string, executor: MigrationExecutor): Promi
   await executor`DELETE FROM schema_migrations WHERE version = ${version}`;
 }
 
-async function withMigrationLock<T>(fn: (tx: TransactionSQL) => Promise<T>): Promise<T> {
-  return await sql.begin(async (tx) => {
-    await tx`SELECT pg_advisory_xact_lock(hashtext(${MIGRATION_LOCK_KEY}))`;
-    return await fn(tx);
-  });
+async function withMigrationLock<T>(fn: (connection: ReservedSQL) => Promise<T>): Promise<T> {
+  const connection = await sql.reserve({ signal: AbortSignal.timeout(35_000) });
+  let lockAcquired = false;
+
+  try {
+    const rows = await connection<{ acquired: number | string | null }[]>`
+      SELECT GET_LOCK(${MIGRATION_LOCK_KEY}, 30) AS acquired
+    `;
+    lockAcquired = Number(rows[0]?.acquired) === 1;
+
+    if (!lockAcquired) {
+      throw new Error(`Could not acquire MySQL migration lock: ${MIGRATION_LOCK_KEY}`);
+    }
+
+    return await fn(connection);
+  } finally {
+    if (lockAcquired) {
+      const rows = await connection<{ released: number | string | null }[]>`
+        SELECT RELEASE_LOCK(${MIGRATION_LOCK_KEY}) AS released
+      `;
+      if (Number(rows[0]?.released) !== 1) {
+        console.warn(`⚠️  MySQL migration lock was not released cleanly: ${MIGRATION_LOCK_KEY}`);
+      }
+    }
+    connection.release();
+  }
 }
 
 async function discoverMigrations(): Promise<string[]> {
@@ -76,13 +105,13 @@ async function cmdUp(): Promise<void> {
   const files = await discoverMigrations();
 
   for (const file of files) {
-    await withMigrationLock(async (tx) => {
-      if (await isApplied(file, tx)) return;
+    await withMigrationLock(async (connection) => {
+      if (await isApplied(file, connection)) return;
 
       console.log(`⬆️  Running migration: ${file}`);
       const mod = await loadMigration(file);
-      await mod.up(tx);
-      await markApplied(file, tx);
+      await mod.up(connection);
+      await markApplied(file, connection);
       console.log(`✅ Applied: ${file}`);
     });
   }
@@ -96,8 +125,8 @@ async function cmdDown(): Promise<boolean> {
   await ensureMigrationTable();
   const files = await discoverMigrations();
 
-  return await withMigrationLock(async (tx) => {
-    const applied = await getAppliedMigrations(tx);
+  return await withMigrationLock(async (connection) => {
+    const applied = await getAppliedMigrations(connection);
     const appliedFiles = files.filter((file) => applied.has(file));
 
     if (appliedFiles.length === 0) {
@@ -108,8 +137,8 @@ async function cmdDown(): Promise<boolean> {
     const last = appliedFiles[appliedFiles.length - 1]!;
     console.log(`⬇️  Rolling back: ${last}`);
     const mod = await loadMigration(last);
-    await mod.down(tx);
-    await markReverted(last, tx);
+    await mod.down(connection);
+    await markReverted(last, connection);
     console.log(`✅ Reverted: ${last}`);
     return true;
   });
@@ -122,7 +151,7 @@ async function cmdRefresh(): Promise<void> {
 
   console.log('⚠️  REFRESH: Rolling back all migrations then re-applying...');
   while (await cmdDown()) {
-    // Roll back one atomic migration at a time.
+    // MySQL DDL can implicitly commit, so migrations must be retry-safe.
   }
   await cmdUp();
 }
@@ -134,10 +163,7 @@ async function cmdCreate(name: string): Promise<void> {
     return;
   }
 
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[^0-9]/g, '')
-    .slice(0, 14);
+  const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
   const normalizedName = name
     .trim()
     .toLowerCase()
@@ -148,12 +174,12 @@ async function cmdCreate(name: string): Promise<void> {
 
   const filename = `${timestamp}_${normalizedName}.ts`;
   const filePath = join(MIGRATIONS_DIR, filename);
-  const template = `import type { SQL, TransactionSQL } from 'bun';
+  const template = `import type { ReservedSQL, SQL } from 'bun';
 
-type MigrationExecutor = SQL | TransactionSQL;
+type MigrationExecutor = SQL | ReservedSQL;
 
 export async function up(sql: MigrationExecutor): Promise<void> {
-  // TODO: implement migration
+  // TODO: implement retry-safe MySQL 8 migration
 }
 
 export async function down(sql: MigrationExecutor): Promise<void> {
@@ -184,6 +210,7 @@ const [command, ...args] = process.argv.slice(2);
 
 try {
   assertSupportedDriver();
+  if (command !== 'create') await assertMysql8();
 
   switch (command) {
     case 'up':

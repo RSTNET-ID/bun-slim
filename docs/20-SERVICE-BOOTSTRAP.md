@@ -13,7 +13,7 @@ Saat membuat service baru:
 3. ubah `SERVICE_NAME` di `.env.example`
 4. isi `docs/00-PROJECT.md` dengan responsibility/non-responsibility service
 5. hapus module example setelah module nyata tersedia
-6. tentukan apakah service membutuhkan PostgreSQL
+6. tentukan kebutuhan schema, index, transaction, dan isolation MySQL 8
 7. aktifkan Redis worker hanya bila background processing benar-benar dibutuhkan
 8. aktifkan scheduler hanya bila ada time-based execution nyata; register task dan tentukan durability/catch-up policy
 9. tentukan auth/tenant policy bila service menerima traffic terproteksi
@@ -35,7 +35,7 @@ bun run audit:prod
 bun run release:check
 ```
 
-Integration test PostgreSQL/Redis dijalankan melalui CI atau environment lokal yang menyediakan dependency terkait.
+Integration test MySQL 8/Redis dijalankan melalui CI atau environment lokal yang menyediakan dependency terkait.
 
 ## Naming
 

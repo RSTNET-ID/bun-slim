@@ -12,8 +12,8 @@ Fokus:
 - service/business rules
 - pure utility
 - error mapping
-- tidak memakai HTTP nyata
-- tidak memakai database nyata
+- tanpa HTTP nyata
+- tanpa database nyata
 
 ### Contract
 
@@ -27,35 +27,30 @@ Fokus:
 - error contract
 - routing
 
-Contract test boleh menggunakan in-memory repository agar cepat dan deterministik.
+Contract test boleh menggunakan in-memory repository.
 
 ### Integration
 
 Lokasi: `tests/integration/`
 
 Fokus:
-- PostgreSQL repository nyata
+- MySQL 8 repository nyata
 - migration compatibility
 - transaction behavior
 - Redis worker bila digunakan
 - external adapter bila test environment tersedia
 
-Integration test database wajib memakai database/schema test terisolasi.
+Integration database wajib memakai database test terisolasi.
 
-## Minimum Coverage per Feature
+## Minimum Coverage
 
-Test minimal:
+Minimal:
 - success path
 - validation failure
 - business failure
 - dependency failure
 
-Untuk worker/webhook/payment-like flow tambahkan:
-- duplicate delivery
-- idempotency
-- retry
-- timeout
-- transaction rollback
+Worker/webhook/payment-like flow juga menguji duplicate delivery, idempotency, retry, timeout, dan transaction rollback.
 
 ## CI
 
@@ -68,6 +63,6 @@ Quality job:
 - build
 
 Database integration job:
-- start PostgreSQL
+- start MySQL 8
 - apply migrations
 - run `tests/integration/`

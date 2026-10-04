@@ -30,7 +30,6 @@ export const envSchema = z
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
-    // HTTP runtime hardening.
     SERVER_HOST: z.string().min(1).default('0.0.0.0'),
     SERVER_IDLE_TIMEOUT_SECONDS: z.coerce.number().int().min(1).max(255).default(15),
     MAX_REQUEST_BODY_BYTES: z.coerce.number().int().min(1024).default(1_048_576),
@@ -38,35 +37,28 @@ export const envSchema = z
     SHUTDOWN_DRAIN_DELAY_MS: z.coerce.number().int().min(0).max(60_000).default(1000),
     SECURITY_HEADERS_ENABLED: booleanFromEnv.default(true),
 
-    // Optional Prometheus-compatible metrics endpoint.
     METRICS_ENABLED: booleanFromEnv.default(false),
     METRICS_TOKEN: z.string().min(24).optional(),
-
-    // Example CRUD routes are for development/reference only.
     EXAMPLE_ROUTES_ENABLED: booleanFromEnv.default(false),
 
-    // Shared outbound HTTP policy. Individual adapters may override these values.
     OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().min(100).default(5000),
     OUTBOUND_HTTP_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
     OUTBOUND_HTTP_RETRY_BASE_MS: z.coerce.number().int().min(0).max(10_000).default(100),
 
-    DB_DRIVER: z.literal('postgres').default('postgres'),
-
+    DB_DRIVER: z.literal('mysql').default('mysql'),
     DATABASE_URL: z.string().url('DATABASE_URL must be a valid connection URL'),
-
     DB_POOL_MAX: z.coerce.number().int().min(1).max(200).default(10),
     DB_IDLE_TIMEOUT_SECONDS: z.coerce.number().int().min(0).default(30),
     DB_CONNECTION_TIMEOUT_SECONDS: z.coerce.number().int().min(1).default(10),
     DB_MAX_LIFETIME_SECONDS: z.coerce.number().int().min(0).default(0),
     DB_PREPARE: booleanFromEnv.default(true),
     DB_TLS_MODE: z
-      .enum(['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'])
+      .enum(['disable', 'prefer', 'require', 'verify-ca', 'verify-full'])
       .default('disable'),
     DB_TLS_CA_FILE: z.string().min(1).optional(),
+    DB_ALLOW_PUBLIC_KEY_RETRIEVAL: booleanFromEnv.default(false),
 
-    // Optional Redis worker/queue pack. HTTP-only services do not require Redis.
     WORKER_ENABLED: booleanFromEnv.default(false),
-    // Optional dedicated Bun.cron scheduler process.
     SCHEDULER_ENABLED: booleanFromEnv.default(false),
     SCHEDULER_TIMEZONE: timezoneSchema.default('UTC'),
     REDIS_URL: z.string().url('REDIS_URL must be a valid Redis URL').optional(),
@@ -90,8 +82,6 @@ export const envSchema = z
       return;
     }
 
-    const acceptedProtocols = ['postgres', 'postgresql'];
-
     if (env.METRICS_ENABLED && !env.METRICS_TOKEN) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -111,14 +101,15 @@ export const envSchema = z
 
       try {
         const databaseUrl = new URL(env.DATABASE_URL);
-        const weakUsernames = new Set(['user', 'test', 'example', 'postgres']);
+        const weakUsernames = new Set(['user', 'test', 'example', 'root', 'mysql']);
         const weakPasswords = new Set([
           'password',
           'changeme',
           'secret',
           'test',
           'example',
-          'postgres',
+          'root',
+          'mysql',
         ]);
 
         if (
@@ -142,6 +133,15 @@ export const envSchema = z
           message: 'DB_TLS_MODE must be verify-full in staging/production',
         });
       }
+
+      if (env.DB_ALLOW_PUBLIC_KEY_RETRIEVAL) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['DB_ALLOW_PUBLIC_KEY_RETRIEVAL'],
+          message:
+            'DB_ALLOW_PUBLIC_KEY_RETRIEVAL is development-only; use TLS for MySQL in staging/production',
+        });
+      }
     }
 
     if (env.WORKER_ENABLED && !env.REDIS_URL) {
@@ -152,11 +152,11 @@ export const envSchema = z
       });
     }
 
-    if (!acceptedProtocols.includes(protocol)) {
+    if (!['mysql', 'mysql2'].includes(protocol)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['DATABASE_URL'],
-        message: `DATABASE_URL protocol "${protocol}" does not match DB_DRIVER="${env.DB_DRIVER}"`,
+        message: `DATABASE_URL protocol "${protocol}" does not match DB_DRIVER="mysql"`,
       });
     }
   });

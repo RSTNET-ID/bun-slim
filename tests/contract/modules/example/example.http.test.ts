@@ -20,6 +20,7 @@ import {
 } from '@/modules/example/example.validation';
 import { parseBody, parseParam, parseQuery } from '@/shared/http';
 import type { AppEnv } from '@/shared/types/context';
+import { EXAMPLE_CATEGORY_IDS } from '@/modules/example/example.constants';
 
 function buildApp() {
   const repository = new ExampleRepository(true);
@@ -203,7 +204,7 @@ describe('Example HTTP API — integration', () => {
     });
 
     it('should return item with category when category_id is set', async () => {
-      const item = await service.create({ name: 'Has Cat', category_id: 'cat-01' });
+      const item = await service.create({ name: 'Has Cat', category_id: EXAMPLE_CATEGORY_IDS.GENERAL });
       const res = await app.request(`/api/v1/examples/${item.id}/lookup`);
       expect(res.status).toBe(200);
       const body = (await res.json()) as any;

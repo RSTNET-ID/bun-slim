@@ -281,7 +281,7 @@ WORKER_RECLAIM_INTERVAL_MS=15000
 
 ## Local Development
 
-Core HTTP + PostgreSQL:
+Core HTTP + MySQL 8:
 
 ```bash
 docker compose up
@@ -308,4 +308,4 @@ Worker masuk akal bila ada:
 - reconciliation/background processing
 - workload yang tidak seharusnya menahan HTTP response
 
-Scheduler baseline sekarang tersedia melalui `Bun.cron()` di process terpisah. Lihat `docs/25-SCHEDULER-STANDARD.md`. Untuk durable execution, scheduler sebaiknya enqueue ke Redis Stream dan worker tetap memegang retry/idempotency. Untuk workflow DAG, delayed-job semantics kompleks, atau scheduler multi-replica tanpa single-leader constraint, evaluasi orchestrator/queue framework khusus.
+Scheduler baseline tersedia melalui `Bun.cron()` pada process terpisah. Lihat `docs/25-SCHEDULER-STANDARD.md`. Durable work tetap masuk Redis Stream dan worker. Untuk workflow DAG, delayed-job semantics kompleks, atau scheduler multi-replica tanpa single-leader constraint, evaluasi orchestrator khusus.

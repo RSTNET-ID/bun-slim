@@ -18,11 +18,12 @@ services:
       TZ: UTC
       SERVICE_NAME: example-service
       LOG_LEVEL: info
-      DB_DRIVER: postgres
-      DATABASE_URL: postgres://user:password@postgres:5432/example_service
+      DB_DRIVER: mysql
+      DATABASE_URL: mysql://user:password@mysql:3306/example_service
       DB_POOL_MAX: 10
       DB_PREPARE: "true"
       DB_TLS_MODE: disable
+      DB_ALLOW_PUBLIC_KEY_RETRIEVAL: "true"
       WORKER_ENABLED: "true"
       REDIS_URL: redis://redis:6379
       WORKER_QUEUE_NAME: default
@@ -35,7 +36,7 @@ services:
       WORKER_STALE_AFTER_MS: 60000
       WORKER_RECLAIM_INTERVAL_MS: 15000
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redis:
         condition: service_healthy

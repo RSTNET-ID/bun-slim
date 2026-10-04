@@ -24,16 +24,17 @@ services:
       OUTBOUND_HTTP_TIMEOUT_MS: 5000
       OUTBOUND_HTTP_MAX_RETRIES: 2
       OUTBOUND_HTTP_RETRY_BASE_MS: 100
-      DB_DRIVER: postgres
-      DATABASE_URL: postgres://user:password@postgres:5432/example_service
+      DB_DRIVER: mysql
+      DATABASE_URL: mysql://user:password@mysql:3306/example_service
       DB_POOL_MAX: 10
       DB_IDLE_TIMEOUT_SECONDS: 30
       DB_CONNECTION_TIMEOUT_SECONDS: 10
       DB_MAX_LIFETIME_SECONDS: 0
       DB_PREPARE: "true"
       DB_TLS_MODE: disable
+      DB_ALLOW_PUBLIC_KEY_RETRIEVAL: "true"
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
     security_opt:
       - no-new-privileges:true
@@ -44,22 +45,24 @@ services:
       - /tmp:size=16m,noexec,nosuid,nodev
     pids_limit: 256
 
-  postgres:
-    image: postgres:16-alpine
+  mysql:
+    image: mysql:8.0
     restart: unless-stopped
-    command: ["postgres", "-c", "timezone=UTC"]
+    command: ["--default-time-zone=+00:00"]
     environment:
       TZ: UTC
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: example_service
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: example_service
+      MYSQL_ROOT_PASSWORD: root-password
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d example_service"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uuser -ppassword --silent"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 20s
 
 volumes:
-  postgres_data:
+  mysql_data:

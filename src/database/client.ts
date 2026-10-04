@@ -17,6 +17,7 @@ export function getDbClient(): SQL {
       tls: config.DB_TLS_CA_FILE
         ? { ca: Bun.file(config.DB_TLS_CA_FILE), rejectUnauthorized: true }
         : config.DB_TLS_MODE,
+      allowPublicKeyRetrieval: config.DB_ALLOW_PUBLIC_KEY_RETRIEVAL,
     });
   }
 

@@ -2,8 +2,6 @@
 
 ## Prinsip
 
-Arsitektur default dibuat sesederhana mungkin.
-
 ```text
 HTTP
   |
@@ -25,27 +23,13 @@ Response
 
 ## Dependency Direction
 
-```text
-route -> handler -> service -> repository/adapter
-```
-
-Aturan:
-- Route: deklarasi endpoint dan middleware.
-- Handler: boundary HTTP.
-- Service: business rules/orchestration.
-- Repository: persistence.
-- Adapter/provider: integrasi eksternal.
-- Worker: proses asynchronous/background.
+`route -> handler -> service -> repository/adapter`
 
 Hono tidak boleh bocor ke business layer.
 
 ## Database Architecture
 
-PostgreSQL adalah default database untuk starter.
-
-Namun service/domain tidak boleh bergantung langsung pada detail PostgreSQL jika hal tersebut bisa dihindari.
-
-Target:
+Branch ini menggunakan MySQL 8 sebagai persistence baseline.
 
 ```text
 Service
@@ -53,32 +37,17 @@ Service
   v
 Repository Contract / Repository Module
   |
-  +--> PostgreSQL implementation (default)
-  +--> MySQL implementation (future, jika dibutuhkan)
+  v
+MySQL 8 implementation
+  |
+  v
+Bun.SQL
 ```
 
-Tidak perlu membuat generic repository framework. Abstraction dibuat hanya di boundary yang nyata.
+Service/domain tidak boleh bergantung langsung pada detail dialect. Yang database-specific tetap berada di repository, migration, index strategy, database client, dan integration test.
+
+Tidak perlu membuat generic repository framework.
 
 ## Worker Architecture
 
-Worker bersifat optional.
-
-Jika service membutuhkan background processing:
-
-```text
-Producer
-   |
-   v
-Redis
-   |
-   v
-Worker
-   |
-   +--> Service
-   +--> Repository
-   +--> External Adapter
-```
-
-Redis digunakan sebagai backend worker/job secara default.
-
-Service HTTP yang tidak memiliki background processing tidak wajib membawa Redis.
+Worker bersifat optional. Jika dibutuhkan, Redis Streams tetap menjadi baseline queue/worker.

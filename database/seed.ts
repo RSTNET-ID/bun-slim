@@ -14,26 +14,39 @@ const SEED_LOCK_KEY = 'bun-slim-database-seeders';
 const sql = getDbClient();
 
 function assertSupportedDriver(): void {
-  if (config.DB_DRIVER !== 'postgres') {
-    throw new Error(`Seeder runner supports PostgreSQL only. DB_DRIVER=${config.DB_DRIVER}`);
+  if (config.DB_DRIVER !== 'mysql') {
+    throw new Error(`Seeder runner supports MySQL 8 only. DB_DRIVER=${config.DB_DRIVER}`);
+  }
+}
+
+async function assertMysql8(): Promise<void> {
+  const rows = await sql<{ version: string }[]>`SELECT VERSION() AS version`;
+  const version = rows[0]?.version ?? '';
+  const major = Number.parseInt(version.split('.')[0] ?? '', 10);
+
+  if (/mariadb/i.test(version) || !Number.isInteger(major) || major < 8) {
+    throw new Error(`MySQL 8+ is required. Connected server reports version "${version || 'unknown'}"`);
   }
 }
 
 async function withSeederLock<T>(fn: (connection: ReservedSQL) => Promise<T>): Promise<T> {
-  const connection = await sql.reserve({ signal: AbortSignal.timeout(35_000) });
+  const connection: ReservedSQL = await sql.reserve({ signal: AbortSignal.timeout(35_000) });
   let lockAcquired = false;
 
   try {
-    await connection`
-      SELECT pg_advisory_lock(hashtextextended(${SEED_LOCK_KEY}, 0))
+    const rows = await connection<{ acquired: number | string | null }[]>`
+      SELECT GET_LOCK(${SEED_LOCK_KEY}, 30) AS acquired
     `;
-    lockAcquired = true;
+    lockAcquired = Number(rows[0]?.acquired) === 1;
+
+    if (!lockAcquired) {
+      throw new Error(`Could not acquire MySQL seeder lock: ${SEED_LOCK_KEY}`);
+    }
+
     return await fn(connection);
   } finally {
     if (lockAcquired) {
-      await connection`
-        SELECT pg_advisory_unlock(hashtextextended(${SEED_LOCK_KEY}, 0))
-      `;
+      await connection`SELECT RELEASE_LOCK(${SEED_LOCK_KEY}) AS released`;
     }
     connection.release();
   }
@@ -63,7 +76,9 @@ async function runSeeders(name?: string, force = false): Promise<void> {
     throw new Error('Production seeding requires --force');
   }
 
+  await assertMysql8();
   const files = selectSeeders(await discoverSeeders(), name);
+
   if (name && files.length === 0) {
     throw new Error(`Seeder not found: ${name}`);
   }

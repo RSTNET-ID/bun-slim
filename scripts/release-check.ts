@@ -10,7 +10,6 @@ const REQUIRED_FILES = [
   '.gitignore',
   'Dockerfile',
   'docker-compose.yml',
-  'docker-compose.scheduler.yml',
   'package.json',
   'docs/00-PROJECT.md',
   'docs/01-ARCHITECTURE.md',
@@ -34,11 +33,14 @@ const REQUIRED_FILES = [
   'docs/22-RELEASE-READINESS.md',
   'docs/23-SECRET-LOGGING-STANDARD.md',
   'docs/24-PRODUCTION-SECURITY-REVIEW.md',
+  'docs/adr/001-mysql-v8-database-variant.md',
+  'src/modules/example/example.constants.ts',
   'docs/25-SCHEDULER-STANDARD.md',
   'docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md',
   'src/scheduler.ts',
   'src/scheduler/runner.ts',
   'src/scheduler/registry.ts',
+  'docker-compose.scheduler.yml',
   'database/seed.ts',
   'database/seeders/20240101000000_example_categories.seeder.ts',
   'scripts/job-dead.ts',
@@ -109,9 +111,9 @@ for (const key of [
   'DB_DRIVER=',
   'EXAMPLE_ROUTES_ENABLED=',
   'METRICS_ENABLED=',
+  'DB_TLS_MODE=',
   'SCHEDULER_ENABLED=',
   'SCHEDULER_TIMEZONE=',
-  'DB_TLS_MODE=',
 ]) {
   if (!envExample.includes(key)) {
     failures.push(`.env.example must define: ${key}`);
@@ -119,16 +121,42 @@ for (const key of [
 }
 
 if (!envExample.includes('TZ=UTC')) {
-  failures.push('.env.example must force TZ=UTC');
+  failures.push('mysql-v8 .env.example must force TZ=UTC');
 }
 
-if (!envExample.includes('DB_DRIVER=postgres')) {
-  failures.push('main .env.example must set DB_DRIVER=postgres');
+if (!envExample.includes('DB_DRIVER=mysql')) {
+  failures.push('mysql-v8 .env.example must set DB_DRIVER=mysql');
 }
 
-const databaseClient = await Bun.file('src/database/client.ts').text();
-if (!databaseClient.includes('config.DB_TLS_MODE')) {
-  failures.push('PostgreSQL database client must use explicit TLS config');
+const mysqlRuntimeFiles = [
+  'src/config/env.ts',
+  'src/database/client.ts',
+  'database/migrate.ts',
+  'database/seed.ts',
+  'database/seeders/20240101000000_example_categories.seeder.ts',
+  'database/migrations/20240101000000_create_categories_and_examples.ts',
+  'database/migrations/20260930161000_add_examples_status_id_index.ts',
+  'src/modules/example/example.repository.ts',
+  'docker-compose.yml',
+] as const;
+
+const forbiddenPostgresPatterns = [
+  /postgres(?:ql)?:\/\//i,
+  /\bTIMESTAMPTZ\b/i,
+  /::(?:uuid|text)\b/i,
+  /\bRETURNING\b/i,
+  /\bON\s+CONFLICT\b/i,
+  /\bpg_advisory_/i,
+  /\bCREATE\s+EXTENSION\b/i,
+];
+
+for (const path of mysqlRuntimeFiles) {
+  const content = await Bun.file(path).text();
+  for (const pattern of forbiddenPostgresPatterns) {
+    if (pattern.test(content)) {
+      failures.push(`MySQL runtime file ${path} contains PostgreSQL-specific syntax: ${pattern}`);
+    }
+  }
 }
 
 const schedulerRunner = await Bun.file('src/scheduler/runner.ts').text();

@@ -1,5 +1,6 @@
 import { getDbClient } from '@/database/client';
-import type { TransactionContext } from '@/database/transaction';
+import { runTransaction, type TransactionContext } from '@/database/transaction';
+import { EXAMPLE_CATEGORY_IDS } from './example.constants';
 import type {
   ExampleItem,
   ExampleWithLookup,
@@ -9,22 +10,23 @@ import type {
   ExampleListQuery,
 } from './example.types';
 
-// ─── Static seed data untuk in-memory category lookup ─────────────────────────
-
 const SEED_CATEGORIES = new Map<string, CategoryItem>([
-  ['cat-01', { id: 'cat-01', name: 'General', code: 'GEN' }],
-  ['cat-02', { id: 'cat-02', name: 'Technology', code: 'TECH' }],
+  [
+    EXAMPLE_CATEGORY_IDS.GENERAL,
+    { id: EXAMPLE_CATEGORY_IDS.GENERAL, name: 'General', code: 'GEN' },
+  ],
+  [
+    EXAMPLE_CATEGORY_IDS.TECHNOLOGY,
+    { id: EXAMPLE_CATEGORY_IDS.TECHNOLOGY, name: 'Technology', code: 'TECH' },
+  ],
+  [
+    EXAMPLE_CATEGORY_IDS.FINANCE,
+    { id: EXAMPLE_CATEGORY_IDS.FINANCE, name: 'Finance', code: 'FIN' },
+  ],
 ]);
-
-// ─── Repository ───────────────────────────────────────────────────────────────
 
 export class ExampleRepository {
   private useInMemory: boolean;
-
-  /**
-   * Instance-level in-memory stores.
-   * Masing-masing instance punya store sendiri sehingga test terisolasi.
-   */
   private _store = new Map<string, ExampleItem>();
   private _categories: Map<string, CategoryItem>;
 
@@ -33,12 +35,6 @@ export class ExampleRepository {
     this._categories = new Map(SEED_CATEGORIES);
   }
 
-  // ── Find All (Cursor Paginated) ─────────────────────────────────────────────
-
-  /**
-   * Mengembalikan limit+1 item untuk deteksi `has_more`.
-   * Caller (handler via sendCursorPaginated) bertanggung jawab memotong ke limit.
-   */
   async findAllCursor(
     query: ExampleListQuery,
     executor?: TransactionContext
@@ -48,35 +44,56 @@ export class ExampleRepository {
     if (this.useInMemory) {
       let items = Array.from(this._store.values()).sort((a, b) => a.id.localeCompare(b.id));
 
-      if (query.status) {
-        items = items.filter((i) => i.status === query.status);
-      }
-      const cursor = query.cursor;
-      if (cursor) {
-        items = items.filter((item) => item.id.localeCompare(cursor) > 0);
+      if (query.status) items = items.filter((item) => item.status === query.status);
+      if (query.cursor) {
+        items = items.filter((item) => item.id.localeCompare(query.cursor!) > 0);
       }
       return items.slice(0, limit + 1);
     }
 
     const sql = executor || getDbClient();
-    // Fetch limit+1 untuk has_more detection
+
+    if (query.status && query.cursor) {
+      return (await sql`
+        SELECT id, name, description, status, category_id, created_at, updated_at
+        FROM examples
+        WHERE status = ${query.status}
+          AND id > ${query.cursor}
+        ORDER BY id ASC
+        LIMIT ${limit + 1}
+      `) as unknown as ExampleItem[];
+    }
+
+    if (query.status) {
+      return (await sql`
+        SELECT id, name, description, status, category_id, created_at, updated_at
+        FROM examples
+        WHERE status = ${query.status}
+        ORDER BY id ASC
+        LIMIT ${limit + 1}
+      `) as unknown as ExampleItem[];
+    }
+
+    if (query.cursor) {
+      return (await sql`
+        SELECT id, name, description, status, category_id, created_at, updated_at
+        FROM examples
+        WHERE id > ${query.cursor}
+        ORDER BY id ASC
+        LIMIT ${limit + 1}
+      `) as unknown as ExampleItem[];
+    }
+
     return (await sql`
       SELECT id, name, description, status, category_id, created_at, updated_at
       FROM examples
-      WHERE
-        (${query.cursor ?? null}::uuid IS NULL OR id > ${query.cursor ?? null}::uuid)
-        AND (${query.status ?? null}::text IS NULL OR status = ${query.status ?? null})
       ORDER BY id ASC
       LIMIT ${limit + 1}
     `) as unknown as ExampleItem[];
   }
 
-  // ── Find By ID ─────────────────────────────────────────────────────────────
-
   async findById(id: string, executor?: TransactionContext): Promise<ExampleItem | null> {
-    if (this.useInMemory) {
-      return this._store.get(id) ?? null;
-    }
+    if (this.useInMemory) return this._store.get(id) ?? null;
 
     const sql = executor || getDbClient();
     const rows = (await sql`
@@ -85,10 +102,9 @@ export class ExampleRepository {
       WHERE id = ${id}
       LIMIT 1
     `) as unknown as ExampleItem[];
+
     return rows[0] ?? null;
   }
-
-  // ── Find By ID with Lookup (JOIN category) ─────────────────────────────────
 
   async findByIdWithLookup(
     id: string,
@@ -111,9 +127,9 @@ export class ExampleRepository {
         e.category_id,
         e.created_at,
         e.updated_at,
-        c.id       AS category__id,
-        c.name     AS category__name,
-        c.code     AS category__code
+        c.id AS category__id,
+        c.name AS category__name,
+        c.code AS category__code
       FROM examples e
       LEFT JOIN categories c ON c.id = e.category_id
       WHERE e.id = ${id}
@@ -124,9 +140,11 @@ export class ExampleRepository {
     return mapRowWithLookup(rows[0]);
   }
 
-  // ── Create ─────────────────────────────────────────────────────────────────
-
   async create(data: CreateExampleDTO, executor?: TransactionContext): Promise<ExampleItem> {
+    if (!this.useInMemory && !executor) {
+      return await runTransaction((tx) => this.create(data, tx));
+    }
+
     const now = new Date();
     const newItem: ExampleItem = {
       id: crypto.randomUUID(),
@@ -143,28 +161,34 @@ export class ExampleRepository {
       return newItem;
     }
 
-    const sql = executor || getDbClient();
-    const rows = (await sql`
+    const sql = executor!;
+    await sql`
       INSERT INTO examples (id, name, description, status, category_id, created_at, updated_at)
       VALUES (
-        ${newItem.id}, ${newItem.name}, ${newItem.description},
-        ${newItem.status}, ${newItem.category_id},
-        ${newItem.created_at}, ${newItem.updated_at}
+        ${newItem.id},
+        ${newItem.name},
+        ${newItem.description},
+        ${newItem.status},
+        ${newItem.category_id},
+        ${newItem.created_at},
+        ${newItem.updated_at}
       )
-      RETURNING id, name, description, status, category_id, created_at, updated_at
-    `) as unknown as ExampleItem[];
-    const created = rows[0];
-    if (!created) throw new Error('Failed to insert example into database');
+    `;
+
+    const created = await this.findById(newItem.id, executor);
+    if (!created) throw new Error('Failed to read inserted example from database');
     return created;
   }
-
-  // ── Update ─────────────────────────────────────────────────────────────────
 
   async update(
     id: string,
     data: UpdateExampleDTO,
     executor?: TransactionContext
   ): Promise<ExampleItem | null> {
+    if (!this.useInMemory && !executor) {
+      return await runTransaction((tx) => this.update(id, data, tx));
+    }
+
     const updatedAt = new Date();
 
     if (this.useInMemory) {
@@ -183,40 +207,42 @@ export class ExampleRepository {
       return updated;
     }
 
-    const sql = executor || getDbClient();
+    const sql = executor!;
+    const existing = await sql<{ id: string }[]>`
+      SELECT id
+      FROM examples
+      WHERE id = ${id}
+      LIMIT 1
+      FOR UPDATE
+    `;
+    if (!existing[0]) return null;
+
     const changes: Record<string, unknown> = { updated_at: updatedAt };
     if (data.name !== undefined) changes.name = data.name;
     if (data.description !== undefined) changes.description = data.description;
     if (data.status !== undefined) changes.status = data.status;
     if (data.category_id !== undefined) changes.category_id = data.category_id;
 
-    const rows = (await sql`
+    await sql`
       UPDATE examples
       SET ${sql(changes)}
       WHERE id = ${id}
-      RETURNING id, name, description, status, category_id, created_at, updated_at
-    `) as unknown as ExampleItem[];
-    return rows[0] ?? null;
-  }
+    `;
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
+    return await this.findById(id, executor);
+  }
 
   async delete(id: string, executor?: TransactionContext): Promise<boolean> {
-    if (this.useInMemory) {
-      return this._store.delete(id);
-    }
+    if (this.useInMemory) return this._store.delete(id);
 
     const sql = executor || getDbClient();
-    const rows = (await sql`
+    const result = await sql`
       DELETE FROM examples
       WHERE id = ${id}
-      RETURNING id
-    `) as unknown as Array<{ id: string }>;
-    return rows.length === 1;
+    `;
+    return result.affectedRows === 1;
   }
 }
-
-// ─── Mapper helper ────────────────────────────────────────────────────────────
 
 function mapRowWithLookup(row: Record<string, unknown>): ExampleWithLookup {
   const categoryId = row['category__id'] as string | null;
