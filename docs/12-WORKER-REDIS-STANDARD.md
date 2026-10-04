@@ -13,7 +13,7 @@ Minimum Redis/Valkey compatibility mengikuti Bun native Redis client, yaitu Redi
 ## Architecture
 
 ```text
-HTTP / Scheduler / Event
+HTTP / Bun.cron Scheduler / Event
         |
         v
      Producer
@@ -254,4 +254,4 @@ Worker masuk akal bila ada:
 - reconciliation/background processing
 - workload yang tidak seharusnya menahan HTTP response
 
-Jika membutuhkan advanced scheduler, complex delayed jobs, workflow DAG, priority queue kompleks, atau dashboard queue lengkap, evaluasi queue framework khusus sebagai keputusan architecture/ADR. Jangan memperbesar core starter untuk kebutuhan yang belum ada.
+Scheduler baseline sekarang tersedia melalui `Bun.cron()` di process terpisah. Lihat `docs/25-SCHEDULER-STANDARD.md`. Untuk durable execution, scheduler sebaiknya enqueue ke Redis Stream dan worker tetap memegang retry/idempotency. Untuk workflow DAG, delayed-job semantics kompleks, atau scheduler multi-replica tanpa single-leader constraint, evaluasi orchestrator/queue framework khusus.
