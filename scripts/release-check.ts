@@ -35,6 +35,7 @@ const REQUIRED_FILES = [
   'docs/23-SECRET-LOGGING-STANDARD.md',
   'docs/24-PRODUCTION-SECURITY-REVIEW.md',
   'docs/25-SCHEDULER-STANDARD.md',
+  'docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md',
   'src/scheduler.ts',
   'src/scheduler/runner.ts',
   'src/scheduler/registry.ts',
@@ -103,6 +104,7 @@ for (const key of [
   'METRICS_ENABLED=',
   'SCHEDULER_ENABLED=',
   'SCHEDULER_TIMEZONE=',
+  'DB_TLS_MODE=',
 ]) {
   if (!envExample.includes(key)) {
     failures.push(`.env.example must define: ${key}`);
@@ -111,6 +113,15 @@ for (const key of [
 
 if (!envExample.includes('TZ=UTC')) {
   failures.push('.env.example must force TZ=UTC');
+}
+
+if (!envExample.includes('DB_DRIVER=postgres')) {
+  failures.push('main .env.example must set DB_DRIVER=postgres');
+}
+
+const databaseClient = await Bun.file('src/database/client.ts').text();
+if (!databaseClient.includes('config.DB_TLS_MODE')) {
+  failures.push('PostgreSQL database client must use explicit TLS config');
 }
 
 const schedulerRunner = await Bun.file('src/scheduler/runner.ts').text();
