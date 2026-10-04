@@ -2,9 +2,7 @@
 
 ## Default
 
-PostgreSQL adalah database standar starter.
-
-Bun.SQL juga mendukung MySQL, tetapi dukungan driver tidak berarti SQL dialect otomatis portable.
+Branch `main` menggunakan PostgreSQL sebagai database baseline dan `DB_DRIVER` dikunci ke `postgres`. Varian MySQL 8 berada di branch `mysql-v8`.
 
 ## Design Goal
 
@@ -122,3 +120,27 @@ Application/scheduler baseline memakai UTC. PostgreSQL production juga harus dik
 Bila produksi menggunakan PgBouncer, repository/database layer harus menghindari asumsi session state yang tidak kompatibel dengan mode pooling yang digunakan.
 
 Untuk transaction pooling, `DB_PREPARE=false` adalah baseline aman sampai versi/config PgBouncer aktual diverifikasi mendukung named prepared statement dengan benar.
+
+
+## TLS
+
+Development/local container boleh menggunakan:
+
+```env
+DB_TLS_MODE=disable
+```
+
+Staging dan production wajib:
+
+```env
+DB_TLS_MODE=verify-full
+```
+
+Untuk private/custom CA:
+
+```env
+DB_TLS_MODE=verify-full
+DB_TLS_CA_FILE=/run/secrets/postgres-ca.pem
+```
+
+Bun.SQL meneruskan mode TLS secara eksplisit ke PostgreSQL. Jangan memakai `require` sebagai production baseline karena mode tersebut mengenkripsi transport tetapi tidak memberikan verifikasi hostname penuh.
