@@ -18,7 +18,7 @@ bun run release:check
 CI juga harus lulus:
 - PostgreSQL migration + integration
 - Redis integration
-- Compose validation
+- Compose validation for base, worker, and scheduler overlays
 - production Docker build
 - non-root runtime verification
 - container liveness smoke test
@@ -47,6 +47,8 @@ Pastikan:
 
 Pastikan:
 - migration baru atomic sesuai database baseline
+- reference/sample data baru memakai idempotent seeder
+- scheduler task names/cron expressions tervalidasi
 - production migration tidak diedit ulang
 - pagination bounded/deterministic
 - writes penting memiliki transaction/idempotency sesuai domain
