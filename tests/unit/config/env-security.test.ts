@@ -6,6 +6,7 @@ const productionBase = {
   SERVICE_NAME: 'security-test-service',
   DATABASE_URL: 'postgres://app_user:strong-runtime-secret@db.internal:5432/service',
   DB_DRIVER: 'postgres',
+  DB_TLS_MODE: 'verify-full',
   TZ: 'UTC',
 };
 
@@ -64,6 +65,24 @@ describe('production environment security guards', () => {
     const result = envSchema.safeParse({
       ...productionBase,
       DATABASE_URL: 'postgres://user:password@db.internal:5432/service',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects unverified PostgreSQL TLS in production', () => {
+    const result = envSchema.safeParse({
+      ...productionBase,
+      DB_TLS_MODE: 'require',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a non-PostgreSQL database URL', () => {
+    const result = envSchema.safeParse({
+      ...productionBase,
+      DATABASE_URL: 'mysql://app_user:strong-runtime-secret@db.internal:3306/service',
     });
 
     expect(result.success).toBe(false);
