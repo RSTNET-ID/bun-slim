@@ -14,6 +14,9 @@ export function getDbClient(): SQL {
       connectionTimeout: config.DB_CONNECTION_TIMEOUT_SECONDS,
       maxLifetime: config.DB_MAX_LIFETIME_SECONDS,
       prepare: config.DB_PREPARE,
+      tls: config.DB_TLS_CA_FILE
+        ? { ca: Bun.file(config.DB_TLS_CA_FILE), rejectUnauthorized: true }
+        : config.DB_TLS_MODE,
     });
   }
 
