@@ -52,6 +52,7 @@ Pastikan:
 - production migration tidak diedit ulang
 - pagination bounded/deterministic
 - writes penting memiliki transaction/idempotency sesuai domain
+- DB write + job/event yang wajib atomic memakai transactional outbox atau equivalent durable handoff
 
 ## Starter Gate
 
