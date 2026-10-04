@@ -1,6 +1,6 @@
 import { config } from '@/config';
 import { logger } from '@/shared/logger';
-import type { JobEnvelope, JobHandlerRegistry } from './job';
+import { parseJobEnvelope, type JobEnvelope, type JobHandlerRegistry } from './job';
 import type { RedisStreamMessage, RedisStreamQueue } from './queue';
 
 export interface WorkerRunnerOptions {
@@ -117,7 +117,7 @@ export class WorkerRunner {
     let job: JobEnvelope;
 
     try {
-      job = parseJob(message.raw);
+      job = parseJobEnvelope(message.raw);
     } catch (error: unknown) {
       const reason = `INVALID_JOB_PAYLOAD: ${toErrorMessage(error)}`;
       logger.error('Invalid worker job payload', {
@@ -195,29 +195,6 @@ export class WorkerRunner {
       this.runningJobs -= 1;
     }
   }
-}
-
-function parseJob(raw: string): JobEnvelope {
-  const parsed: unknown = JSON.parse(raw);
-
-  if (!parsed || typeof parsed !== 'object') {
-    throw new Error('Job payload must be an object');
-  }
-
-  const job = parsed as Partial<JobEnvelope>;
-
-  if (
-    typeof job.job_id !== 'string' ||
-    typeof job.job_type !== 'string' ||
-    typeof job.version !== 'number' ||
-    typeof job.created_at !== 'string' ||
-    typeof job.attempt !== 'number' ||
-    !('payload' in job)
-  ) {
-    throw new Error('Job envelope is missing required fields');
-  }
-
-  return job as JobEnvelope;
 }
 
 function retryDelayMs(attempt: number): number {
