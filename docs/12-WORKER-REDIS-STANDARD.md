@@ -106,6 +106,21 @@ await enqueueJob(
 
 Jangan memasukkan secret, credential, atau payload sensitif yang tidak diperlukan ke job.
 
+## Database Write + Enqueue Atomicity
+
+Redis Streams memberi durable delivery setelah message berhasil masuk Redis, tetapi database commit dan Redis enqueue bukan satu transaksi.
+
+Jika business write **harus** menghasilkan job/event dan kehilangan publish tidak dapat diterima, gunakan transactional outbox. Jangan melakukan:
+
+```text
+commit database
+then enqueue Redis
+```
+
+sebagai reliability guarantee.
+
+Lihat `docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md`.
+
 ## Handler Registration
 
 Register handler di `src/worker/registry.ts`.
