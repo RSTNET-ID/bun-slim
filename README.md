@@ -12,7 +12,7 @@ Starter microservice ringan menggunakan Bun native + Hono.
 - **Testing**: `bun:test`
 - **Container**: Docker multi-stage build, non-root
 
-PostgreSQL adalah implementasi default. MySQL dapat digunakan kemudian dengan mengganti database boundary yang memang dialect-specific tanpa mengubah handler/service.
+Branch `main` adalah baseline PostgreSQL-only. Varian MySQL 8 berada di branch `mysql-v8`; handler/service contract tetap dijaga sama, sedangkan persistence boundary tetap database-specific.
 
 ## Quick Start
 
@@ -21,6 +21,18 @@ bun install
 cp .env.example .env
 bun run dev
 ```
+
+### Database
+
+Development dapat memakai TLS disabled pada jaringan lokal/container:
+
+```env
+DB_DRIVER=postgres
+DB_TLS_MODE=disable
+# DB_TLS_CA_FILE=/run/secrets/postgres-ca.pem
+```
+
+Staging/production wajib memakai `DB_TLS_MODE=verify-full`. Bun.SQL mendukung mode TLS PostgreSQL dan custom CA melalui `DB_TLS_CA_FILE`.
 
 ### Migration
 
