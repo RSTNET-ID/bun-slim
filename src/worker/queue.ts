@@ -239,7 +239,7 @@ export class RedisStreamQueue {
     }
 
     const boundedLimit = normalizeCount(limit, 100, MAX_DLQ_PURGE_BATCH);
-    const cutoffStreamId = `${cutoff.getTime()}-0`;
+    const cutoffStreamId = `${cutoff.getTime()}-18446744073709551615`;
     const response = await this.redis.send('XRANGE', [
       this.deadLetterKey,
       '-',
