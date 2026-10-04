@@ -180,6 +180,21 @@ bun run seed:create roles
 
 Seeder bersifat idempotent, transactional, memakai PostgreSQL advisory lock, dan membutuhkan `--force` di production. Migration historis tetap immutable.
 
+## Dead-Letter Operations
+
+Worker DLQ memiliki CLI operasional bounded:
+
+```bash
+bun run job:dead:list -- --limit=20
+bun run job:dead:show -- <stream-id>
+bun run job:dead:replay -- <stream-id>
+bun run job:dead:purge -- --older-than=30d --limit=100 --force
+```
+
+Payload disembunyikan pada `show` kecuali `--payload` diberikan. Replay production membutuhkan `--force`, mempertahankan `job_id`, mereset `attempt=1`, dan hanya boleh dilakukan bila handler job masih terdaftar.
+
+Lihat `docs/12-WORKER-REDIS-STANDARD.md`.
+
 ## Transactional Outbox
 
 Jika business database write **harus** menghasilkan background job/event dan kehilangan publish tidak dapat diterima, jangan mengandalkan pola `commit DB -> enqueue Redis` sebagai atomic operation.
