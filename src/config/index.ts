@@ -1,4 +1,7 @@
 import { loadEnv } from './env';
 
-export const config = loadEnv();
+const loadedConfig = loadEnv();
+process.env.TZ = loadedConfig.TZ;
+
+export const config = loadedConfig;
 export * from './env';
