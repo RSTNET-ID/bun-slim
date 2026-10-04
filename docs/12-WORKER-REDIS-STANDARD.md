@@ -172,6 +172,36 @@ Unknown `job_type` dan malformed job juga masuk dead-letter.
 
 Dead-letter stream harus dipantau dan memiliki prosedur replay/manual investigation sesuai domain service.
 
+### DLQ Operations CLI
+
+Starter menyediakan tooling operasional:
+
+```bash
+bun run job:dead:list -- --limit=20
+bun run job:dead:show -- <stream-id>
+bun run job:dead:show -- <stream-id> --payload
+bun run job:dead:replay -- <stream-id>
+bun run job:dead:purge -- --older-than=30d --limit=100 --force
+```
+
+Production replay membutuhkan `--force`:
+
+```bash
+bun run job:dead:replay -- <stream-id> --force
+```
+
+Behavior:
+- `list` menampilkan metadata bounded tanpa payload
+- `show` menyembunyikan payload kecuali `--payload`
+- `replay` mempertahankan `job_id` dan mereset `attempt=1`
+- replay hanya diizinkan bila `job_type` saat ini memiliki handler terdaftar
+- perpindahan DLQ -> main stream menggunakan Redis Lua script atomic agar entry yang sama tidak direplay dua operator
+- `purge` selalu membutuhkan `--force`
+- purge menggunakan `--older-than` dan batch `--limit`, bukan delete tak terbatas
+- default list maksimum 100 entry; purge batch maksimum 1000 entry
+
+Payload DLQ dapat mengandung business data. Jangan memakai `--payload` lalu menyalin output ke ticket/chat/log tanpa review sensitivitas data.
+
 ### Stale Job Recovery
 
 Worker secara berkala menggunakan Redis pending-entry reclaim.
