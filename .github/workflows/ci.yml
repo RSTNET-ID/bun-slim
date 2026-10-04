@@ -64,6 +64,7 @@ jobs:
           --health-retries=10
     env:
       APP_ENV: test
+      TZ: UTC
       SERVICE_NAME: bun-slim-ci
       LOG_LEVEL: warn
       DB_DRIVER: postgres
@@ -85,6 +86,9 @@ jobs:
 
       - name: Apply migrations
         run: bun run migrate:up
+
+      - name: Seed reference data
+        run: bun run seed
 
       - name: PostgreSQL integration tests
         run: bun run test:integration
@@ -136,6 +140,7 @@ jobs:
         run: |
           docker compose -f docker-compose.yml config >/dev/null
           docker compose -f docker-compose.yml -f docker-compose.worker.yml config >/dev/null
+          docker compose -f docker-compose.yml -f docker-compose.scheduler.yml config >/dev/null
 
       - name: Build production image
         run: docker build -t bun-slim:ci .
