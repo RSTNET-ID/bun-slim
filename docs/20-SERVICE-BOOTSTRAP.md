@@ -15,11 +15,12 @@ Saat membuat service baru:
 5. hapus module example setelah module nyata tersedia
 6. tentukan apakah service membutuhkan PostgreSQL
 7. aktifkan Redis worker hanya bila background processing benar-benar dibutuhkan
-8. tentukan auth/tenant policy bila service menerima traffic terproteksi
-9. definisikan outbound dependency name + timeout/idempotency bila ada provider/API eksternal
-10. tetapkan outbound origin/SSRF policy untuk setiap provider/internal HTTP dependency
-11. pastikan route contoh sudah dihapus atau tetap disabled
-12. jalankan seluruh release readiness checks sebelum deployment pertama
+8. aktifkan scheduler hanya bila ada time-based execution nyata; register task dan tentukan durability/catch-up policy
+9. tentukan auth/tenant policy bila service menerima traffic terproteksi
+10. definisikan outbound dependency name + timeout/idempotency bila ada provider/API eksternal
+11. tetapkan outbound origin/SSRF policy untuk setiap provider/internal HTTP dependency
+12. pastikan route contoh sudah dihapus atau tetap disabled
+13. jalankan seluruh release readiness checks sebelum deployment pertama
 
 ## Required Commands
 
@@ -68,6 +69,7 @@ Karena sejarah software sudah cukup dipenuhi nama yang menjadi kebohongan perman
 
 Jika service tidak menggunakan:
 - worker: jangan deploy worker/Redis overlay
+- scheduler: jangan deploy scheduler overlay
 - metrics: biarkan disabled
 - tenant context: jangan pasang middleware tenant
 - auth: jangan membuat auth dummy
