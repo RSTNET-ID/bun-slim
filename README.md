@@ -180,6 +180,12 @@ bun run seed:create roles
 
 Seeder bersifat idempotent, transactional, memakai PostgreSQL advisory lock, dan membutuhkan `--force` di production. Migration historis tetap immutable.
 
+## Transactional Outbox
+
+Jika business database write **harus** menghasilkan background job/event dan kehilangan publish tidak dapat diterima, jangan mengandalkan pola `commit DB -> enqueue Redis` sebagai atomic operation.
+
+Gunakan transactional outbox sesuai `docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md`. Direct `enqueueJob()` tetap tepat untuk pekerjaan yang tidak perlu atomic dengan business DB write.
+
 ## Resilience, Metrics, and Production Hardening
 
 Starter menyediakan baseline tambahan tanpa dependency runtime baru:
