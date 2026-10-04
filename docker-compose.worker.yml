@@ -22,6 +22,7 @@ services:
       DATABASE_URL: postgres://user:password@postgres:5432/example_service
       DB_POOL_MAX: 10
       DB_PREPARE: "true"
+      DB_TLS_MODE: disable
       WORKER_ENABLED: "true"
       REDIS_URL: redis://redis:6379
       WORKER_QUEUE_NAME: default
