@@ -4,6 +4,10 @@ import type { ScheduledTask } from './task';
 
 const SCHEDULE_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 
+function resolveTimezone(task: ScheduledTask): string {
+  return task.timezone ?? config.SCHEDULER_TIMEZONE;
+}
+
 export function validateScheduledTasks(tasks: ScheduledTask[]): void {
   const names = new Set<string>();
 
@@ -19,7 +23,8 @@ export function validateScheduledTasks(tasks: ScheduledTask[]): void {
     }
     names.add(task.name);
 
-    const next = Bun.cron.parse(task.cron, Date.now(), { tz: config.TZ });
+    const timezone = resolveTimezone(task);
+    const next = Bun.cron.parse(task.cron, Date.now(), { tz: timezone });
     if (!next) {
       throw new Error(`Scheduler task "${task.name}" has no future run: ${task.cron}`);
     }
@@ -44,13 +49,14 @@ export class SchedulerRunner {
     validateScheduledTasks(this.tasks);
 
     for (const task of this.tasks) {
-      const next = Bun.cron.parse(task.cron, Date.now(), { tz: config.TZ });
+      const timezone = resolveTimezone(task);
+      const next = Bun.cron.parse(task.cron, Date.now(), { tz: timezone });
       const job = Bun.cron(
         task.cron,
         async () => {
-          await this.execute(task);
+          await this.execute(task, timezone);
         },
-        { tz: config.TZ }
+        { tz: timezone }
       );
 
       this.jobs.push(job);
@@ -58,14 +64,14 @@ export class SchedulerRunner {
       logger.info('Scheduler task registered', {
         task: task.name,
         cron: task.cron,
-        timezone: config.TZ,
+        timezone,
         next_run_at: next?.toISOString(),
       });
     }
 
     logger.info('Scheduler started', {
       task_count: this.jobs.length,
-      timezone: config.TZ,
+      default_timezone: config.SCHEDULER_TIMEZONE,
     });
   }
 
@@ -90,13 +96,13 @@ export class SchedulerRunner {
     }
   }
 
-  private async execute(task: ScheduledTask): Promise<void> {
+  private async execute(task: ScheduledTask, timezone: string): Promise<void> {
     if (this.stopping) return;
 
     const controller = new AbortController();
     const scheduledAt = new Date();
     const startedAt = performance.now();
-    const run = this.runTask(task, controller, scheduledAt, startedAt);
+    const run = this.runTask(task, timezone, controller, scheduledAt, startedAt);
 
     this.activeControllers.add(controller);
     this.activeRuns.add(run);
@@ -111,6 +117,7 @@ export class SchedulerRunner {
 
   private async runTask(
     task: ScheduledTask,
+    timezone: string,
     controller: AbortController,
     scheduledAt: Date,
     startedAt: number
@@ -118,12 +125,14 @@ export class SchedulerRunner {
     try {
       await task.run({
         scheduledAt,
+        timezone,
         signal: controller.signal,
       });
 
       logger.info('Scheduler task completed', {
         task: task.name,
         cron: task.cron,
+        timezone,
         scheduled_at: scheduledAt.toISOString(),
         duration_ms: Math.round(performance.now() - startedAt),
       });
@@ -131,6 +140,7 @@ export class SchedulerRunner {
       logger.error('Scheduler task failed', {
         task: task.name,
         cron: task.cron,
+        timezone,
         scheduled_at: scheduledAt.toISOString(),
         duration_ms: Math.round(performance.now() - startedAt),
         error: error instanceof Error ? error.message : String(error),
