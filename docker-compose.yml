@@ -9,6 +9,7 @@ services:
       - "127.0.0.1:3000:3000"
     environment:
       APP_ENV: development
+      TZ: UTC
       SERVICE_NAME: example-service
       PORT: 3000
       LOG_LEVEL: info
@@ -45,7 +46,9 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    command: ["postgres", "-c", "timezone=UTC"]
     environment:
+      TZ: UTC
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: example_service
