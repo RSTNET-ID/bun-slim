@@ -32,7 +32,12 @@
     "scheduler:dev": "bun src/scheduler.ts",
     "seed": "bun database/seed.ts run",
     "seed:run": "bun database/seed.ts run",
-    "seed:create": "bun database/seed.ts create"
+    "seed:create": "bun database/seed.ts create",
+    "job:dead": "bun scripts/job-dead.ts",
+    "job:dead:list": "bun scripts/job-dead.ts list",
+    "job:dead:show": "bun scripts/job-dead.ts show",
+    "job:dead:replay": "bun scripts/job-dead.ts replay",
+    "job:dead:purge": "bun scripts/job-dead.ts purge"
   },
   "dependencies": {
     "hono": "^4.7.0",
