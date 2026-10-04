@@ -4,6 +4,18 @@ Semua perubahan penting pada Bun Slim dicatat di file ini.
 
 Format mengikuti semantic versioning.
 
+## Unreleased
+
+### Added
+- transactional, idempotent PostgreSQL database seeder with advisory locking and production `--force` guard
+- dedicated Bun.cron scheduler process, registry, validation tests, standalone binary, and Compose overlay
+- UTC runtime baseline for application, worker, PostgreSQL development service, and scheduler
+
+### Changed
+- scheduler responsibilities are explicitly separated from worker durable execution
+- coding rules now require new reference/sample data to use seeders rather than new migrations
+- release readiness checks guard scheduler, seeder, and UTC baseline
+
 ## 1.0.0 - 2026-10-01
 
 ### Added
