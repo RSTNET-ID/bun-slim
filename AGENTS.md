@@ -78,6 +78,14 @@ Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
 - Jangan log seluruh `process.env`, provider config, credential object, Authorization, cookie, token, password, DB/Redis URL credential, atau private key.
 - Pertahankan recursive logger redaction dan test coverage-nya.
 
+## Worker Operations
+
+- Pertahankan DLQ tooling di `scripts/job-dead.ts`.
+- List/show harus read-only dan bounded.
+- Replay production membutuhkan explicit force guard serta handler yang masih terdaftar.
+- Purge selalu membutuhkan `--force`, cutoff umur, dan batch limit.
+- Jangan expose payload DLQ secara default.
+
 ## Outbox Reliability
 
 - Gunakan transactional outbox bila DB write wajib menghasilkan job/event dan kehilangan publish tidak dapat diterima.
