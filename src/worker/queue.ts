@@ -1,10 +1,26 @@
 import type { RedisClient } from 'bun';
 import { config } from '@/config';
-import type { JobEnvelope } from './job';
+import { parseJobEnvelope, type JobEnvelope } from './job';
 
 export interface RedisStreamMessage {
   id: string;
   raw: string;
+}
+
+export interface DeadLetterEntry {
+  id: string;
+  originalStreamId: string | null;
+  failedAt: string | null;
+  reason: string | null;
+  rawPayload: string | null;
+  jobId: string | null;
+  jobType: string | null;
+  attempt: number | null;
+}
+
+export interface DeadLetterReplayResult {
+  streamId: string;
+  job: JobEnvelope;
 }
 
 export interface RedisStreamQueueOptions {
@@ -12,6 +28,31 @@ export interface RedisStreamQueueOptions {
   deadLetterKey?: string;
   groupName?: string;
 }
+
+const MAX_DLQ_LIST = 100;
+const MAX_DLQ_PURGE_BATCH = 1000;
+
+const REPLAY_DLQ_SCRIPT = `
+local entry = redis.call('XRANGE', KEYS[2], ARGV[1], ARGV[1], 'COUNT', 1)
+if #entry == 0 then
+  return {false, 0}
+end
+
+local stream_id = redis.call(
+  'XADD',
+  KEYS[1],
+  '*',
+  'job',
+  ARGV[2],
+  'replayed_from_dlq',
+  ARGV[1],
+  'replayed_at',
+  ARGV[3]
+)
+
+redis.call('XDEL', KEYS[2], ARGV[1])
+return {stream_id, 1}
+`;
 
 export class RedisStreamQueue {
   readonly streamKey: string;
@@ -97,7 +138,7 @@ export class RedisStreamQueue {
   }
 
   async deadLetter(message: RedisStreamMessage, reason: string): Promise<void> {
-    await this.redis.send('XADD', [
+    const args = [
       this.deadLetterKey,
       '*',
       'original_stream_id',
@@ -108,10 +149,121 @@ export class RedisStreamQueue {
       reason,
       'payload',
       message.raw,
-    ]);
+    ];
 
+    try {
+      const job = parseJobEnvelope(message.raw);
+      args.push(
+        'job_id',
+        job.job_id,
+        'job_type',
+        job.job_type,
+        'attempt',
+        String(job.attempt)
+      );
+    } catch {
+      // Malformed jobs still belong in DLQ; metadata is optional for those rows.
+    }
+
+    await this.redis.send('XADD', args);
     await this.ack(message.id);
   }
+
+  async countDeadLetters(): Promise<number> {
+    return Number(await this.redis.send('XLEN', [this.deadLetterKey]));
+  }
+
+  async listDeadLetters(limit = 20): Promise<DeadLetterEntry[]> {
+    const boundedLimit = normalizeCount(limit, 20, MAX_DLQ_LIST);
+    const response = await this.redis.send('XREVRANGE', [
+      this.deadLetterKey,
+      '+',
+      '-',
+      'COUNT',
+      String(boundedLimit),
+    ]);
+
+    return parseDeadLetterEntries(response);
+  }
+
+  async getDeadLetter(id: string): Promise<DeadLetterEntry | null> {
+    assertRedisStreamId(id);
+
+    const response = await this.redis.send('XRANGE', [
+      this.deadLetterKey,
+      id,
+      id,
+      'COUNT',
+      '1',
+    ]);
+
+    return parseDeadLetterEntries(response)[0] ?? null;
+  }
+
+  async replayDeadLetter(id: string): Promise<DeadLetterReplayResult | null> {
+    const entry = await this.getDeadLetter(id);
+    if (!entry) return null;
+    if (!entry.rawPayload) {
+      throw new Error(`Dead-letter entry ${id} has no payload`);
+    }
+
+    const originalJob = parseJobEnvelope(entry.rawPayload);
+    const replayedJob: JobEnvelope = {
+      ...originalJob,
+      attempt: 1,
+    };
+
+    const response = await this.redis.send('EVAL', [
+      REPLAY_DLQ_SCRIPT,
+      '2',
+      this.streamKey,
+      this.deadLetterKey,
+      id,
+      JSON.stringify(replayedJob),
+      new Date().toISOString(),
+    ]);
+
+    if (!Array.isArray(response) || !response[0]) {
+      return null;
+    }
+
+    return {
+      streamId: String(response[0]),
+      job: replayedJob,
+    };
+  }
+
+  async purgeDeadLettersBefore(cutoff: Date, limit = 100): Promise<number> {
+    if (Number.isNaN(cutoff.getTime())) {
+      throw new Error('DLQ purge cutoff must be a valid date');
+    }
+
+    const boundedLimit = normalizeCount(limit, 100, MAX_DLQ_PURGE_BATCH);
+    const cutoffStreamId = `${cutoff.getTime()}-0`;
+    const response = await this.redis.send('XRANGE', [
+      this.deadLetterKey,
+      '-',
+      cutoffStreamId,
+      'COUNT',
+      String(boundedLimit),
+    ]);
+
+    const ids = parseDeadLetterEntries(response).map((entry) => entry.id);
+    if (ids.length === 0) return 0;
+
+    return Number(await this.redis.send('XDEL', [this.deadLetterKey, ...ids]));
+  }
+}
+
+export function assertRedisStreamId(id: string): void {
+  if (!/^\d+-\d+$/.test(id)) {
+    throw new Error(`Invalid Redis stream ID: ${id}`);
+  }
+}
+
+function normalizeCount(value: number, fallback: number, max: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(1, Math.floor(value)));
 }
 
 function extractMessages(response: unknown): RedisStreamMessage[] {
@@ -160,6 +312,55 @@ function parseMessageList(value: unknown): RedisStreamMessage[] {
   }
 
   return messages;
+}
+
+function parseDeadLetterEntries(value: unknown): DeadLetterEntry[] {
+  const rawEntries = normalizeStreamEntries(value);
+
+  return rawEntries.map(({ id, fields }) => {
+    const attemptRaw = getFieldValue(fields, 'attempt');
+    const attempt = attemptRaw === undefined ? null : Number(attemptRaw);
+
+    return {
+      id,
+      originalStreamId: getFieldValue(fields, 'original_stream_id') ?? null,
+      failedAt: getFieldValue(fields, 'failed_at') ?? null,
+      reason: getFieldValue(fields, 'reason') ?? null,
+      rawPayload: getFieldValue(fields, 'payload') ?? null,
+      jobId: getFieldValue(fields, 'job_id') ?? null,
+      jobType: getFieldValue(fields, 'job_type') ?? null,
+      attempt: attempt !== null && Number.isInteger(attempt) ? attempt : null,
+    };
+  });
+}
+
+function normalizeStreamEntries(value: unknown): Array<{ id: string; fields: unknown }> {
+  if (Array.isArray(value)) {
+    const entries: Array<{ id: string; fields: unknown }> = [];
+
+    for (const entry of value) {
+      if (!Array.isArray(entry) || entry.length < 2) continue;
+      entries.push({ id: String(entry[0]), fields: entry[1] });
+    }
+
+    return entries;
+  }
+
+  if (value instanceof Map) {
+    return [...value.entries()].map(([id, fields]) => ({
+      id: String(id),
+      fields,
+    }));
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>).map(([id, fields]) => ({
+      id,
+      fields,
+    }));
+  }
+
+  return [];
 }
 
 function getFieldValue(fields: unknown, key: string): string | undefined {
