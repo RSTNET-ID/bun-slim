@@ -48,7 +48,7 @@ bun run test:contract
 bun run test:integration
 ```
 
-`test:integration` membutuhkan PostgreSQL test database yang sudah dimigrasi.
+`test:integration` membutuhkan PostgreSQL test database yang sudah dimigrasi dan reference seeder dapat dijalankan dengan `bun run seed`.
 
 ### Quality
 
@@ -143,6 +143,16 @@ SCHEDULER_ENABLED=true bun run scheduler:dev
 ```
 
 Baseline scheduler memakai UTC dan satu scheduler replica. Bun mencegah overlap task yang sama dalam satu process, tetapi tidak melakukan deduplication antar replica.
+
+Compose template setelah minimal satu task terdaftar:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.scheduler.yml \
+  --profile scheduler \
+  up --build scheduler redis postgres
+```
 
 Lihat `docs/25-SCHEDULER-STANDARD.md`.
 
