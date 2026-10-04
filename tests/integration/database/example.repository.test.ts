@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import type { SQL } from 'bun';
+import type { SQL, TransactionSQL } from 'bun';
 import type { ExampleRepository } from '@/modules/example/example.repository';
 
 const runPostgresIntegration = process.env.RUN_POSTGRES_INTEGRATION === 'true';
@@ -13,7 +13,7 @@ if (!runPostgresIntegration) {
     let repository: ExampleRepository;
     let closeDbClient: () => Promise<void>;
     let getDbClient: () => SQL;
-    let runCategorySeeder: (sql: import('bun').TransactionSQL) => Promise<void>;
+    let runCategorySeeder: (sql: TransactionSQL) => Promise<void>;
     const createdIds: string[] = [];
 
     beforeAll(async () => {
