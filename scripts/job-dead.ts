@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
-import { config } from '@/config';
-import { parseDurationMs, summarizeDeadLetter } from '@/worker/dead-letter';
-import { parseJobEnvelope } from '@/worker/job';
-import { jobHandlers } from '@/worker/registry';
-import { RedisStreamQueue } from '@/worker/queue';
-import { closeRedisClient, connectRedisClient } from '@/worker/client';
+import { config } from '../src/config';
+import { parseDurationMs, summarizeDeadLetter } from '../src/worker/dead-letter';
+import { parseJobEnvelope } from '../src/worker/job';
+import { jobHandlers } from '../src/worker/registry';
+import { RedisStreamQueue } from '../src/worker/queue';
+import { closeRedisClient, connectRedisClient } from '../src/worker/client';
 
 interface ParsedArgs {
   positionals: string[];
