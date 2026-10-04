@@ -7,11 +7,13 @@ Format mengikuti semantic versioning.
 ## Unreleased
 
 ### Added
+- transactional outbox reliability standard for DB-write + Redis job atomicity
 - transactional, idempotent PostgreSQL database seeder with advisory locking and production `--force` guard
 - dedicated Bun.cron scheduler process, registry, validation tests, standalone binary, and Compose overlay
 - UTC runtime baseline for application, worker, PostgreSQL development service, and scheduler
 
 ### Changed
+- main database config is PostgreSQL-only and staging/production require verified TLS
 - scheduler responsibilities are explicitly separated from worker durable execution
 - coding rules now require new reference/sample data to use seeders rather than new migrations
 - release readiness checks guard scheduler, seeder, and UTC baseline
