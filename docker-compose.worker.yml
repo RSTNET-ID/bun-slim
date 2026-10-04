@@ -15,6 +15,7 @@ services:
     command: ["./worker"]
     environment:
       APP_ENV: development
+      TZ: UTC
       SERVICE_NAME: example-service
       LOG_LEVEL: info
       DB_DRIVER: postgres
