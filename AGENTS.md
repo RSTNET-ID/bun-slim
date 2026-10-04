@@ -15,7 +15,7 @@ Sebelum mengubah kode:
 10. Business logic tidak boleh menerima `Hono Context`.
 11. PostgreSQL adalah database default, tetapi persistence layer tidak boleh mengunci domain/service ke PostgreSQL.
 12. Worker, bila diperlukan, menggunakan Bun native RedisClient + Redis Streams consumer group sebagai baseline.
-13. Scheduler, bila diperlukan, menggunakan dedicated `Bun.cron()` process dengan UTC; jangan register cron di HTTP server.
+13. Scheduler, bila diperlukan, menggunakan dedicated `Bun.cron()` process; runtime/database tetap UTC, sedangkan jadwal memakai IANA timezone eksplisit dari `SCHEDULER_TIMEZONE` atau override per task. Jangan register cron di HTTP server.
 14. Service tanpa worker tidak wajib memakai Redis; jangan memasang worker/Redis hanya demi keseragaman.
 15. Worker handler wajib memperlakukan delivery sebagai at-least-once dan menjaga operasi write tetap idempotent.
 16. Tambah atau update test untuk perubahan behavior.
