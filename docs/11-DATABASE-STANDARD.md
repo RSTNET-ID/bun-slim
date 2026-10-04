@@ -35,6 +35,7 @@ Jangan membuat abstraction generik berlebihan hanya untuk mengejar portability t
 Default:
 
 ```env
+TZ=UTC
 DB_DRIVER=postgres
 DATABASE_URL=postgres://user:password@postgres:5432/service_db
 DB_POOL_MAX=10
@@ -91,6 +92,30 @@ Migration runner PostgreSQL juga memakai advisory lock untuk mengurangi race saa
 `migrate:refresh` tidak boleh berjalan pada `APP_ENV=production`.
 
 Migration yang sudah pernah diterapkan jangan diedit. Buat migration baru.
+
+## Seeder
+
+Reference/sample data baru menggunakan `database/seed.ts` dan `database/seeders/*.seeder.ts`.
+
+Aturan:
+- idempotent dan aman dijalankan ulang
+- setiap seeder berjalan dalam transaction
+- seluruh run diproteksi PostgreSQL advisory lock
+- production membutuhkan `--force`
+- migration historis yang sudah pernah diterapkan tidak diedit untuk memindahkan seed
+- schema tetap menjadi tanggung jawab migration
+
+Perintah:
+
+```bash
+bun run seed
+bun run seed:run -- example_categories
+bun run seed:create roles
+```
+
+## Timezone
+
+Application/scheduler baseline memakai UTC. PostgreSQL production juga harus dikonfigurasi UTC untuk konsistensi server-side `NOW()` dan operational tooling.
 
 ## PgBouncer
 
