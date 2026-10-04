@@ -102,6 +102,7 @@ for (const key of [
   'EXAMPLE_ROUTES_ENABLED=',
   'METRICS_ENABLED=',
   'SCHEDULER_ENABLED=',
+  'SCHEDULER_TIMEZONE=',
 ]) {
   if (!envExample.includes(key)) {
     failures.push(`.env.example must define: ${key}`);
@@ -113,8 +114,8 @@ if (!envExample.includes('TZ=UTC')) {
 }
 
 const schedulerRunner = await Bun.file('src/scheduler/runner.ts').text();
-if (!schedulerRunner.includes('Bun.cron(') || !schedulerRunner.includes('tz: config.TZ')) {
-  failures.push('scheduler runner must use Bun.cron with explicit configured timezone');
+if (!schedulerRunner.includes('Bun.cron(') || !schedulerRunner.includes('config.SCHEDULER_TIMEZONE') || !schedulerRunner.includes('tz: timezone')) {
+  failures.push('scheduler runner must use Bun.cron with configurable explicit timezone');
 }
 
 const forbiddenEnvFragments = [
