@@ -19,6 +19,7 @@ services:
       DB_POOL_MAX: 5
       DB_PREPARE: "true"
       SCHEDULER_ENABLED: "true"
+      SCHEDULER_TIMEZONE: ${SCHEDULER_TIMEZONE:-UTC}
       REDIS_URL: redis://redis:6379
     depends_on:
       postgres:
