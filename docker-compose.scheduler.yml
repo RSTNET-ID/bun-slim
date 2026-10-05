@@ -41,6 +41,10 @@ services:
     tmpfs:
       - /tmp:size=16m,noexec,nosuid,nodev
     pids_limit: 128
+    networks:
+      - runtime
+      - database
+      - queue
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9465/health/ready"]
       interval: 15s
@@ -60,6 +64,8 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
+    networks:
+      - queue
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
