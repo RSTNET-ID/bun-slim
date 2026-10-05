@@ -94,6 +94,33 @@ describe('production environment security guards', () => {
     expect(result.success).toBe(false);
   });
 
+  it('accepts a separate migration database credential', () => {
+    const result = envSchema.safeParse({
+      ...productionBase,
+      MIGRATION_DATABASE_URL: 'mysql://migrator:strong-migration-secret@db.internal:3306/service',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects migration credentials for the wrong database driver', () => {
+    const result = envSchema.safeParse({
+      ...productionBase,
+      MIGRATION_DATABASE_URL: 'postgres://migrator:strong-runtime-secret@db.internal:5432/service',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects placeholder migration credentials in production', () => {
+    const result = envSchema.safeParse({
+      ...productionBase,
+      MIGRATION_DATABASE_URL: 'mysql://user:password@db.internal:3306/service',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('rejects a non-MySQL database URL', () => {
     const result = envSchema.safeParse({
       ...productionBase,
