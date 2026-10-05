@@ -289,6 +289,12 @@ const migrationRunner = await Bun.file('database/migrate.ts').text();
 if (!migrationRunner.includes("from './migrations/registry'")) {
   failures.push('migration runner must use the static bundled migration registry');
 }
+if (
+  !migrationRunner.includes('Production migrate down requires --force') ||
+  !migrationRunner.includes('migrate create is disabled in production')
+) {
+  failures.push('production migration CLI must guard destructive/source-generation commands');
+}
 
 const migrationRegistry = await Bun.file('database/migrations/registry.ts').text();
 const migrationFiles = readdirSync('database/migrations')
