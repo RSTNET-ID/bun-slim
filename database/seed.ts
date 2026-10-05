@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import type { ReservedSQL, TransactionSQL } from 'bun';
+import type { ReservedSQL } from 'bun';
 import { join } from 'node:path';
 import { config } from '../src/config';
 import { closeDbClient, getDbClient } from '../src/database/client';
@@ -49,7 +49,7 @@ async function withSeederLock<T>(fn: (connection: ReservedSQL) => Promise<T>): P
   }
 }
 
-function selectSeeders(name?: string): typeof seeders[number][] {
+function selectSeeders(name?: string): Array<(typeof seeders)[number]> {
   if (!name) return [...seeders];
 
   const normalized = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
@@ -74,7 +74,7 @@ async function runSeeders(name?: string, force = false): Promise<void> {
   await withSeederLock(async (connection) => {
     for (const entry of selected) {
       console.log(`🌱 Running seeder: ${entry.filename}`);
-      await connection.begin(async (tx: TransactionSQL) => {
+      await connection.begin(async (tx) => {
         await entry.run(tx);
       });
       console.log(`✅ Seeded: ${entry.filename}`);
