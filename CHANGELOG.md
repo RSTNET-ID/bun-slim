@@ -7,6 +7,7 @@ Format mengikuti semantic versioning.
 ## Unreleased
 
 ### Added
+- shared Redis root namespace derived from `SERVICE_NAME:APP_ENV`, with explicit `REDIS_NAMESPACE` override support
 - compiled migrate/seed binaries with one-shot Compose auto-migration gate
 - Trivy image scanning, SPDX SBOM generation, and Renovate multi-branch digest pinning policy
 - compiled `migrate` and `seed` runtime binaries with static migration/seeder registries
@@ -22,6 +23,8 @@ Format mengikuti semantic versioning.
 - UTC runtime baseline for application, worker, PostgreSQL development service, and scheduler
 
 ### Changed
+- worker stream, DLQ, and consumer group names now use `<REDIS_NAMESPACE>:queue:<WORKER_QUEUE_NAME>:...`; legacy `WORKER_QUEUE_PREFIX` was removed
+- staging/production now require an explicit non-placeholder `SERVICE_NAME` so default Redis namespaces cannot collide across starter deployments
 - Compose now separates runtime, database, and queue networks; HTTP container health uses database-aware readiness
 - migration runner supports dedicated `MIGRATION_DATABASE_URL` credentials so application runtime need not hold DDL privileges
 - production image no longer copies TypeScript `database/` source; database operations are bundled into standalone binaries
