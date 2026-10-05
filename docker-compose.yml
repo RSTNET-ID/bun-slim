@@ -39,6 +39,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -53,6 +55,79 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    command: ["./migrate", "up"]
+    mem_limit: 256m
+    cpus: 0.5
+    environment:
+      APP_ENV: development
+      TZ: UTC
+      SERVICE_NAME: example-service
+      LOG_LEVEL: info
+      DB_DRIVER: postgres
+      DATABASE_URL: postgres://user:password@postgres:5432/example_service
+      DB_POOL_MAX: 2
+      DB_PREPARE: "true"
+      DB_TLS_MODE: disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=8m,noexec,nosuid,nodev
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  seed:
+    profiles: ["seed"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    command: ["./seed", "run"]
+    mem_limit: 256m
+    cpus: 0.5
+    environment:
+      APP_ENV: development
+      TZ: UTC
+      SERVICE_NAME: example-service
+      LOG_LEVEL: info
+      DB_DRIVER: postgres
+      DATABASE_URL: postgres://user:password@postgres:5432/example_service
+      DB_POOL_MAX: 2
+      DB_PREPARE: "true"
+      DB_TLS_MODE: disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=8m,noexec,nosuid,nodev
+    pids_limit: 128
     logging:
       driver: json-file
       options:
