@@ -39,6 +39,8 @@ export const envSchema = z
 
     METRICS_ENABLED: booleanFromEnv.default(false),
     METRICS_TOKEN: z.string().min(24).optional(),
+    METRICS_HOST: z.string().min(1).default('0.0.0.0'),
+    METRICS_PORT: z.coerce.number().int().min(1).max(65535).default(9464),
     EXAMPLE_ROUTES_ENABLED: booleanFromEnv.default(false),
 
     OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().min(100).default(5000),
