@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # STAGE 0: BASE — Bun build environment, pinned to UTC
 # ─────────────────────────────────────────────────────────────────────────────
-FROM oven/bun:1.4.0-alpine AS base
+FROM oven/bun:1.4.2-alpine AS base
 
 ENV TZ=UTC
 
