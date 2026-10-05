@@ -40,8 +40,9 @@ export class InMemoryExampleRepository implements ExampleRepositoryPort {
       items = items.filter((item) => item.status === query.status);
     }
 
-    if (query.cursor) {
-      items = items.filter((item) => item.id.localeCompare(query.cursor!) > 0);
+    const cursor = query.cursor;
+    if (cursor) {
+      items = items.filter((item) => item.id.localeCompare(cursor) > 0);
     }
 
     return items.slice(0, limit + 1);
