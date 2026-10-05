@@ -44,7 +44,7 @@ Exit code:
 Doctor memeriksa:
 
 - environment melalui schema yang sama dengan service runtime, termasuk file-backed secrets dan effective `REDIS_NAMESPACE`
-- runtime Bun minimal 1.4
+- runtime Bun minimal 1.4.2
 - `DB_TLS_CA_FILE` bila dikonfigurasi
 - worker registry ketika `WORKER_ENABLED=true`
 - scheduler registry dan cron/timezone validation
