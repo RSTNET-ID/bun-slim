@@ -352,6 +352,9 @@ const seederRunner = await Bun.file('database/seed.ts').text();
 if (!seederRunner.includes("from './seeders/registry'")) {
   failures.push('seeder runner must use the static bundled seeder registry');
 }
+if (!seederRunner.includes('seed create is disabled in staging/production')) {
+  failures.push('seeder CLI must block source generation in deployed environments');
+}
 
 const seederRegistry = await Bun.file('database/seeders/registry.ts').text();
 const seederFiles = readdirSync('database/seeders')
