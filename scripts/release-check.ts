@@ -49,6 +49,7 @@ const REQUIRED_FILES = [
   'tests/unit/shared/redis/key.test.ts',
   'tests/unit/worker/queue-namespace.test.ts',
   'tests/unit/config/redis-namespace.test.ts',
+  'tests/helpers/in-memory-example.repository.ts',
   'tests/unit/shared/lifecycle/process-health.test.ts',
   'tests/unit/config/env-file-secrets.test.ts',
   'src/scheduler/registry.ts',
@@ -187,6 +188,45 @@ if (!envExample.includes('DB_DRIVER=postgres')) {
 const databaseClient = await Bun.file('src/database/client.ts').text();
 if (!databaseClient.includes('config.DB_TLS_MODE')) {
   failures.push('PostgreSQL database client must use explicit TLS config');
+}
+
+const exampleRepository = await Bun.file(
+  'src/modules/example/example.repository.ts'
+).text();
+
+for (const fragment of [
+  'constructor(private readonly db: SQL = getDbClient())',
+  'sql<ExampleItem[]>',
+  'INSERT INTO examples ${sql(newItem)}',
+  'SET ${sql(changes)}',
+  'ExampleRepositoryPort',
+]) {
+  if (!exampleRepository.includes(fragment)) {
+    failures.push(`example repository must demonstrate Bun.SQL-first pattern: ${fragment}`);
+  }
+}
+
+for (const forbidden of ['useInMemory', '_store', 'as unknown as', 'BaseRepository']) {
+  if (exampleRepository.includes(forbidden)) {
+    failures.push(`production example repository contains forbidden persistence pattern: ${forbidden}`);
+  }
+}
+
+const codingRules = await Bun.file('docs/13-CODING-RULES.md').text();
+const agentsGuide = await Bun.file('AGENTS.md').text();
+for (const [label, content] of [
+  ['coding rules', codingRules],
+  ['AGENTS.md', agentsGuide],
+] as const) {
+  for (const fragment of [
+    'Bun.SQL adalah primary database access layer',
+    'custom query builder',
+    'BaseRepository<T>',
+  ]) {
+    if (!content.includes(fragment)) {
+      failures.push(`${label} must preserve Bun.SQL-first rule: ${fragment}`);
+    }
+  }
 }
 
 const schedulerRunner = await Bun.file('src/scheduler/runner.ts').text();
