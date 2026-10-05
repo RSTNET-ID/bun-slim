@@ -1,5 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
+import {
+  isRedisKeySegment,
+  isRedisNamespace,
+  resolveRedisNamespace,
+} from '@/shared/redis/key';
 
 type RawEnv = Record<string, string | undefined>;
 
@@ -66,7 +71,14 @@ export const envSchema = z
   .object({
     APP_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
     TZ: z.literal('UTC').default('UTC'),
-    SERVICE_NAME: z.string().min(1).default('example-service'),
+    SERVICE_NAME: z
+      .string()
+      .min(1)
+      .refine(isRedisKeySegment, {
+        message:
+          'SERVICE_NAME must use letters, numbers, dot, underscore, or hyphen for Redis-safe namespacing',
+      })
+      .default('example-service'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
@@ -117,10 +129,24 @@ export const envSchema = z
     SCHEDULER_ENABLED: booleanFromEnv.default(false),
     SCHEDULER_TIMEZONE: timezoneSchema.default('UTC'),
     REDIS_URL: z.string().url('REDIS_URL must be a valid Redis URL').optional(),
+    REDIS_NAMESPACE: z
+      .string()
+      .min(1)
+      .refine(isRedisNamespace, {
+        message:
+          'REDIS_NAMESPACE must use colon-separated Redis-safe segments',
+      })
+      .optional(),
     REDIS_CONNECTION_TIMEOUT_MS: z.coerce.number().int().min(100).default(5000),
     REDIS_MAX_RETRIES: z.coerce.number().int().min(0).max(100).default(20),
-    WORKER_QUEUE_NAME: z.string().min(1).default('default'),
-    WORKER_QUEUE_PREFIX: z.string().min(1).default('queue'),
+    WORKER_QUEUE_NAME: z
+      .string()
+      .min(1)
+      .refine(isRedisKeySegment, {
+        message:
+          'WORKER_QUEUE_NAME must use letters, numbers, dot, underscore, or hyphen',
+      })
+      .default('default'),
     WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(1),
     WORKER_BLOCK_MS: z.coerce.number().int().min(100).max(60_000).default(1000),
     WORKER_JOB_TIMEOUT_MS: z.coerce.number().int().min(100).default(30_000),
@@ -156,6 +182,14 @@ export const envSchema = z
     }
 
     if (env.APP_ENV === 'staging' || env.APP_ENV === 'production') {
+      if (env.SERVICE_NAME === 'example-service') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['SERVICE_NAME'],
+          message: 'SERVICE_NAME must be explicitly set in staging/production',
+        });
+      }
+
       if (env.EXAMPLE_ROUTES_ENABLED) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -232,7 +266,15 @@ export const envSchema = z
         });
       }
     }
-  });
+  })
+  .transform((env) => ({
+    ...env,
+    REDIS_NAMESPACE: resolveRedisNamespace(
+      env.SERVICE_NAME,
+      env.APP_ENV,
+      env.REDIS_NAMESPACE
+    ),
+  }));
 
 export type EnvConfig = z.infer<typeof envSchema>;
 
