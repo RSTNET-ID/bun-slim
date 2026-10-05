@@ -42,6 +42,10 @@ Pastikan:
 - outbound request memiliki timeout
 - retried write memiliki idempotency contract
 - metrics tidak menggunakan high-cardinality labels
+- shared image tidak memiliki role-specific image-level healthcheck
+- worker/scheduler memakai loopback process readiness endpoint, bukan PID-only healthcheck
+- container stop grace melebihi application shutdown/job timeout budget
+- compiled production binaries tidak auto-load `.env` atau `bunfig.toml`
 - production image membawa standalone `./doctor`
 - final deployment environment lulus `./doctor` sebelum traffic diberikan
 
