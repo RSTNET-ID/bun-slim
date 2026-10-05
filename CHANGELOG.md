@@ -7,6 +7,9 @@ Format mengikuti semantic versioning.
 ## Unreleased
 
 ### Added
+- compiled `migrate` and `seed` runtime binaries with static migration/seeder registries
+- one-shot Compose migration gate before app/worker/scheduler startup and opt-in seed profile
+- Trivy final-image vulnerability scan, SPDX SBOM generation, and Renovate Docker digest-pin policy
 - loopback worker/scheduler liveness and readiness endpoints for container health probes
 - deployment runtime doctor with offline/JSON modes, DB/Redis preflight, and registry validation
 - wire standalone worker/scheduler metrics listeners and scheduler execution metrics
@@ -17,6 +20,7 @@ Format mengikuti semantic versioning.
 - UTC runtime baseline for application, worker, PostgreSQL development service, and scheduler
 
 ### Changed
+- production image no longer copies TypeScript `database/` source; database operations are bundled into standalone binaries
 - shared Docker image no longer owns an HTTP-only healthcheck; Compose now defines health per process role
 - Compose stop grace, runtime resource bounds, and json-file log rotation aligned with application lifecycle
 - standalone production binaries disable automatic `.env` and `bunfig.toml` loading
