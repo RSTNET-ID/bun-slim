@@ -155,6 +155,8 @@ docker compose \
   up --build
 ```
 
+Redis key otomatis memakai namespace `<SERVICE_NAME>:<APP_ENV>`, misalnya `artavax:production:queue:default:stream`. `REDIS_NAMESPACE` dapat dioverride untuk site/cluster tambahan. Namespace mencegah key collision; Redis ACL/credential tetap diperlukan sebagai access-control boundary pada shared Redis.
+
 ## Optional Metrics
 
 HTTP server menyajikan `/metrics` pada `PORT`. Worker dan scheduler memakai listener terpisah pada `METRICS_HOST:METRICS_PORT` (default `0.0.0.0:9464`). Saat `METRICS_ENABLED=true`, set `METRICS_TOKEN` minimal 24 karakter. Lihat `docs/15-METRICS-STANDARD.md`.
