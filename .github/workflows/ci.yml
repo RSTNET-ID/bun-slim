@@ -42,6 +42,9 @@ jobs:
       - name: Build standalone binary
         run: bun run build
 
+      - name: Verify generated database registries are committed
+        run: git diff --exit-code -- database/migrations/registry.ts database/seeders/registry.ts
+
       - name: Release readiness
         run: bun run release:check
 
