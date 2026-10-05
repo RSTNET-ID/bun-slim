@@ -120,6 +120,18 @@ bun run build
 bun run release:check
 ```
 
+## Runtime Doctor
+
+Preflight runtime tersedia untuk memvalidasi environment MySQL, Bun version, worker/scheduler registry, database, dan Redis bila dikonfigurasi:
+
+```bash
+bun run doctor
+bun run doctor:offline
+bun run doctor -- --json
+```
+
+Production image membawa standalone `./doctor`. Gunakan sebagai deployment/pre-start check, bukan liveness probe periodik. Lihat `docs/27-RUNTIME-DOCTOR.md`.
+
 ## Optional Redis Worker
 
 Worker tetap optional dan menggunakan Bun native Redis client + Redis Streams.
