@@ -231,8 +231,8 @@ await sql`
 
 - Semua outbound HTTP request wajib menggunakan timeout.
 - Jangan log request body secara penuh di level INFO/DEBUG — bisa mengandung credential.
-- Secret hanya dibaca dari environment variable, tidak pernah di-hardcode.
-- `DATABASE_URL` wajib ada di semua environment — tidak boleh ada default value.
+- Secret hanya berasal dari runtime environment atau mekanisme file-backed `*_FILE` yang didukung; tidak pernah di-hardcode atau dicommit.
+- Database credential wajib tersedia melalui `DATABASE_URL` atau `DATABASE_URL_FILE`; tidak boleh ada default credential.
 - Gunakan `crypto.randomUUID()` (Bun native) untuk ID generation.
 
 ---
