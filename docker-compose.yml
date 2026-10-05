@@ -49,8 +49,12 @@ services:
     tmpfs:
       - /tmp:size=16m,noexec,nosuid,nodev
     pids_limit: 256
+    networks:
+      - runtime
+      - database
+      - queue
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health/live"]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health/ready"]
       interval: 15s
       timeout: 5s
       start_period: 10s
@@ -76,6 +80,7 @@ services:
       LOG_LEVEL: info
       DB_DRIVER: postgres
       DATABASE_URL: postgres://user:password@postgres:5432/example_service
+      MIGRATION_DATABASE_URL: postgres://user:password@postgres:5432/example_service
       DB_POOL_MAX: 2
       DB_PREPARE: "true"
       DB_TLS_MODE: disable
@@ -90,6 +95,8 @@ services:
     tmpfs:
       - /tmp:size=8m,noexec,nosuid,nodev
     pids_limit: 128
+    networks:
+      - database
     logging:
       driver: json-file
       options:
@@ -128,6 +135,8 @@ services:
     tmpfs:
       - /tmp:size=8m,noexec,nosuid,nodev
     pids_limit: 128
+    networks:
+      - database
     logging:
       driver: json-file
       options:
@@ -146,6 +155,8 @@ services:
       POSTGRES_DB: example_service
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - database
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d example_service"]
       interval: 5s
@@ -159,3 +170,10 @@ services:
 
 volumes:
   postgres_data:
+
+networks:
+  runtime:
+  database:
+    internal: true
+  queue:
+    internal: true
