@@ -129,6 +129,7 @@ for (const key of [
   'TZ=',
   'SERVICE_NAME=',
   'DATABASE_URL=',
+  'MIGRATION_DATABASE_URL=',
   'DB_DRIVER=',
   'EXAMPLE_ROUTES_ENABLED=',
   'METRICS_ENABLED=',
@@ -276,8 +277,15 @@ const baseCompose = await Bun.file('docker-compose.yml').text();
 if (!baseCompose.includes('stop_grace_period: 25s')) {
   failures.push('app compose service must allow bounded graceful shutdown');
 }
-if (!baseCompose.includes('http://127.0.0.1:3000/health/live')) {
-  failures.push('app compose service must own the HTTP healthcheck');
+if (!baseCompose.includes('http://127.0.0.1:3000/health/ready')) {
+  failures.push('app compose service must use the HTTP readiness healthcheck');
+}
+if (
+  !baseCompose.includes('database:\n    internal: true') ||
+  !baseCompose.includes('queue:\n    internal: true') ||
+  !baseCompose.includes('      - runtime\n      - database\n      - queue')
+) {
+  failures.push('base compose must segment runtime, database, and queue networks');
 }
 if (!baseCompose.includes('max-size: "10m"') || !baseCompose.includes('mem_limit:')) {
   failures.push('base compose must bound logs and application memory');
@@ -298,7 +306,8 @@ if (
   !workerCompose.includes('stop_grace_period: 40s') ||
   !workerCompose.includes('http://127.0.0.1:9465/health/ready') ||
   workerCompose.includes('kill -0 1') ||
-  !workerCompose.includes('condition: service_completed_successfully')
+  !workerCompose.includes('condition: service_completed_successfully') ||
+  !workerCompose.includes('      - runtime\n      - database\n      - queue')
 ) {
   failures.push('worker compose must use process readiness and a sufficient stop grace period');
 }
@@ -308,7 +317,8 @@ if (
   !schedulerCompose.includes('stop_grace_period: 25s') ||
   !schedulerCompose.includes('http://127.0.0.1:9465/health/ready') ||
   schedulerCompose.includes('kill -0 1') ||
-  !schedulerCompose.includes('condition: service_completed_successfully')
+  !schedulerCompose.includes('condition: service_completed_successfully') ||
+  !schedulerCompose.includes('      - runtime\n      - database\n      - queue')
 ) {
   failures.push('scheduler compose must use process readiness and a sufficient stop grace period');
 }
@@ -316,6 +326,9 @@ if (
 const migrationRunner = await Bun.file('database/migrate.ts').text();
 if (!migrationRunner.includes("from './migrations/registry'")) {
   failures.push('migration runner must use the static bundled migration registry');
+}
+if (!migrationRunner.includes('config.MIGRATION_DATABASE_URL ?? config.DATABASE_URL')) {
+  failures.push('migration runner must support a dedicated migration database credential');
 }
 if (
   !migrationRunner.includes('Production migrate down requires --force') ||
