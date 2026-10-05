@@ -8,6 +8,7 @@ const REQUIRED_FILES = [
   'CHANGELOG.md',
   '.env.example',
   '.gitignore',
+  '.github/workflows/ci.yml',
   'renovate.json',
   'Dockerfile',
   'docker-compose.yml',
@@ -237,6 +238,9 @@ if (/^\s*HEALTHCHECK\b/m.test(dockerfile)) {
 }
 if (!dockerfile.includes('ENV TZ=UTC') || dockerfile.includes('ARG TZ')) {
   failures.push('runtime image must force UTC and must not expose TZ as a build argument');
+}
+if (dockerfile.includes('ARG BUN_VERSION') || !dockerfile.includes('FROM oven/bun:1.4.0-alpine')) {
+  failures.push('Bun Docker dependency must use an explicit Renovate-detectable tag');
 }
 
 for (const script of [
