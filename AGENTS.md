@@ -18,9 +18,10 @@ Sebelum mengubah kode:
 13. Scheduler, bila diperlukan, menggunakan dedicated `Bun.cron()` process; runtime/database tetap UTC, sedangkan jadwal memakai IANA timezone eksplisit dari `SCHEDULER_TIMEZONE` atau override per task. Jangan register cron di HTTP server.
 14. Service tanpa worker tidak wajib memakai Redis; jangan memasang worker/Redis hanya demi keseragaman.
 15. Worker handler wajib memperlakukan delivery sebagai at-least-once dan menjaga operasi write tetap idempotent.
-16. Tambah atau update test untuk perubahan behavior.
-17. Update dokumentasi terkait architecture, API, data, security, observability, atau deployment.
-18. Perubahan architecture penting harus memiliki ADR.
+16. Gunakan `bun run migrate create <name>` dan `bun run seed:create <name>` agar static runtime registry ikut diperbarui; jangan menambah file migration/seeder tanpa registry sync.
+17. Tambah atau update test untuk perubahan behavior.
+18. Update dokumentasi terkait architecture, API, data, security, observability, atau deployment.
+19. Perubahan architecture penting harus memiliki ADR.
 
 Dependency direction default:
 
