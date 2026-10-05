@@ -55,6 +55,27 @@ docker compose \
 
 Redis tidak diekspos ke host pada baseline compose.
 
+## Pre-start Runtime Doctor
+
+Production image membawa standalone `./doctor`.
+
+Jalankan sebelum process utama menerima traffic:
+
+```bash
+./doctor && exec ./server
+```
+
+Worker/scheduler memakai environment final yang sama dengan process yang akan dijalankan:
+
+```bash
+WORKER_ENABLED=true ./doctor && exec ./worker
+SCHEDULER_ENABLED=true ./doctor && exec ./scheduler
+```
+
+Untuk validasi image/config tanpa dependency network gunakan `./doctor --offline`.
+
+Doctor adalah pre-start validation, bukan liveness probe periodik.
+
 ## Shutdown
 
 HTTP:
