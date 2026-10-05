@@ -85,6 +85,16 @@ docker compose --profile seed run --rm seed
 
 Production seeding tetap membutuhkan `--force` dan harus menjadi tindakan operasional yang disengaja.
 
+### Production Orchestrator Rule
+
+Auto-migrate berarti **satu pre-deploy migration job**, bukan migration di setiap application replica.
+
+Untuk Docker Compose baseline, service `migrate` adalah job tersebut. Untuk Kubernetes/Nomad/ECS atau orchestrator lain, gunakan equivalent one-shot Job/task dan gate rollout aplikasi pada exit code 0.
+
+Jangan memasukkan `./migrate up && ./server` ke entrypoint setiap replica. Database lock memang mencegah concurrent schema execution, tetapi replica startup akan tetap terikat pada migration lifecycle dan memperbesar failure domain deployment.
+
+Production migration CLI mengizinkan `up` dan `status` secara normal. `down` membutuhkan `--force`, `refresh` tetap dilarang, dan `create` dilarang karena production image bukan workspace pengembangan.
+
 ## Pre-start Runtime Doctor
 
 Production image membawa standalone `./doctor`.
