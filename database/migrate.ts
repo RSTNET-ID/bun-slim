@@ -62,7 +62,17 @@ async function markReverted(version: string, executor: MigrationExecutor): Promi
 
 async function withMigrationLock<T>(fn: (tx: TransactionSQL) => Promise<T>): Promise<T> {
   return await sql.begin(async (tx) => {
-    await tx`SELECT pg_advisory_xact_lock(hashtext(${MIGRATION_LOCK_KEY}))`;
+    await tx`SET LOCAL lock_timeout = '30s'`;
+
+    try {
+      await tx`SELECT pg_advisory_xact_lock(hashtext(${MIGRATION_LOCK_KEY}))`;
+    } catch (error: unknown) {
+      throw new Error(
+        `Could not acquire PostgreSQL migration lock within 30s: ${MIGRATION_LOCK_KEY}`,
+        { cause: error }
+      );
+    }
+
     return await fn(tx);
   });
 }
