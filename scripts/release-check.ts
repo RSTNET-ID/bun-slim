@@ -40,6 +40,8 @@ const REQUIRED_FILES = [
   'src/scheduler.ts',
   'src/scheduler/runner.ts',
   'src/shared/observability/metrics-server.ts',
+  'src/shared/lifecycle/process-health.ts',
+  'tests/unit/shared/lifecycle/process-health.test.ts',
   'src/scheduler/registry.ts',
   'database/seed.ts',
   'database/seeders/20240101000000_example_categories.seeder.ts',
@@ -51,6 +53,8 @@ const REQUIRED_FILES = [
 
 const REQUIRED_SCRIPTS = [
   'build',
+  'build:server',
+  'build:worker',
   'typecheck',
   'lint',
   'format:check',
@@ -116,6 +120,7 @@ for (const key of [
   'DB_DRIVER=',
   'EXAMPLE_ROUTES_ENABLED=',
   'METRICS_ENABLED=',
+  'PROCESS_HEALTH_PORT=',
   'SCHEDULER_ENABLED=',
   'SCHEDULER_TIMEZONE=',
   'DB_TLS_MODE=',
@@ -174,6 +179,68 @@ if (!dockerfile.includes('/app/dist/job-dead ./job-dead')) {
 }
 if (!dockerfile.includes('/app/dist/doctor ./doctor')) {
   failures.push('runtime image must include compiled doctor binary');
+}
+if (dockerfile.includes('HEALTHCHECK ')) {
+  failures.push('shared runtime image must not define a role-specific HEALTHCHECK');
+}
+if (!dockerfile.includes('ENV TZ=UTC') || dockerfile.includes('ARG TZ')) {
+  failures.push('runtime image must force UTC and must not expose TZ as a build argument');
+}
+
+for (const script of [
+  'build:server',
+  'build:worker',
+  'build:scheduler',
+  'build:job-dead',
+  'build:doctor',
+]) {
+  const command = packageJson.scripts?.[script] ?? '';
+  if (
+    !command.includes('--no-compile-autoload-dotenv') ||
+    !command.includes('--no-compile-autoload-bunfig')
+  ) {
+    failures.push(`${script} must disable compiled dotenv and bunfig autoload`);
+  }
+}
+
+const processHealth = await Bun.file('src/shared/lifecycle/process-health.ts').text();
+for (const fragment of [
+  "hostname: '127.0.0.1'",
+  "'/health/live'",
+  "'/health/ready'",
+]) {
+  if (!processHealth.includes(fragment)) {
+    failures.push(`process health server missing required behavior: ${fragment}`);
+  }
+}
+
+const baseCompose = await Bun.file('docker-compose.yml').text();
+if (!baseCompose.includes('stop_grace_period: 25s')) {
+  failures.push('app compose service must allow bounded graceful shutdown');
+}
+if (!baseCompose.includes('http://127.0.0.1:3000/health/live')) {
+  failures.push('app compose service must own the HTTP healthcheck');
+}
+if (!baseCompose.includes('max-size: "10m"') || !baseCompose.includes('mem_limit:')) {
+  failures.push('base compose must bound logs and application memory');
+}
+
+const workerCompose = await Bun.file('docker-compose.worker.yml').text();
+if (
+  !workerCompose.includes('stop_grace_period: 40s') ||
+  !workerCompose.includes('http://127.0.0.1:9465/health/ready') ||
+  workerCompose.includes('kill -0 1')
+) {
+  failures.push('worker compose must use process readiness and a sufficient stop grace period');
+}
+
+const schedulerCompose = await Bun.file('docker-compose.scheduler.yml').text();
+if (
+  !schedulerCompose.includes('stop_grace_period: 25s') ||
+  !schedulerCompose.includes('http://127.0.0.1:9465/health/ready') ||
+  schedulerCompose.includes('kill -0 1')
+) {
+  failures.push('scheduler compose must use process readiness and a sufficient stop grace period');
 }
 
 const doctorCli = await Bun.file('scripts/doctor.ts').text();
