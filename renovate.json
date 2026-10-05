@@ -2,14 +2,36 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "docker:pinDigests"
+    "docker:pinDigests",
+    "docker:disableMajor"
+  ],
+  "baseBranches": [
+    "main",
+    "mysql-v8"
   ],
   "dependencyDashboard": true,
+  "prConcurrentLimit": 5,
   "packageRules": [
     {
-      "description": "Keep Docker base and service image digest updates reviewable",
+      "description": "Keep Docker digest updates reviewable",
       "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "groupName": "container digests",
       "automerge": false
+    },
+    {
+      "description": "Keep infrastructure image tags stable; receive security/base rebuilds through digest updates",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["alpine", "postgres", "mysql", "redis"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "enabled": false
+    },
+    {
+      "description": "Allow Bun patch updates within the selected minor line",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["oven/bun"],
+      "matchUpdateTypes": ["minor"],
+      "enabled": false
     }
   ]
 }
