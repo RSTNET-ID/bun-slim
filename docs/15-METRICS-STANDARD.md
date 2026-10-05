@@ -8,25 +8,33 @@ Metrics disabled secara default:
 
 ```env
 METRICS_ENABLED=false
+METRICS_HOST=0.0.0.0
+METRICS_PORT=9464
 ```
 
-Jika aktif:
+Saat `METRICS_ENABLED=true`, `METRICS_TOKEN` wajib diisi minimal 24 karakter.
+
+## Endpoints by Process
+
+HTTP server menyajikan `GET /metrics` pada port aplikasi `PORT`.
+
+Worker dan scheduler adalah process terpisah. Keduanya menjalankan listener metrics sendiri pada:
 
 ```text
-GET /metrics
+http://METRICS_HOST:METRICS_PORT/metrics
 ```
 
-Endpoint menghasilkan Prometheus text exposition format.
+Dalam deployment container, worker dan scheduler boleh memakai nomor port internal yang sama karena berada di network namespace berbeda. Jika dua process dijalankan pada host namespace yang sama, gunakan port metrics yang berbeda.
 
 ## Security
 
-`/metrics` bukan endpoint publik untuk end user.
+`/metrics` bukan endpoint publik untuk end user. Authorization memakai:
 
-Production sebaiknya membatasi endpoint melalui:
-- private network
-- reverse proxy allowlist
-- service mesh policy
-- monitoring network
+```text
+Authorization: Bearer <METRICS_TOKEN>
+```
+
+Production juga sebaiknya membatasi listener melalui private network, reverse proxy allowlist, service mesh policy, atau monitoring network.
 
 Jangan memasukkan secret atau data pelanggan ke label.
 
@@ -34,22 +42,21 @@ Jangan memasukkan secret atau data pelanggan ke label.
 
 Allowed label examples:
 - HTTP method
-- status class: 2xx, 4xx, 5xx
+- status class
 - logical dependency name
+- bounded job type
+- bounded scheduler task name
+- bounded outcome/result
 
-Forbidden/default-avoid:
-- path mentah
-- URL
-- request ID
-- tenant ID
-- transaction ID
-- user ID
-- IP client
-- exception message
-
-High-cardinality labels membuat metrics backend membengkak tanpa belas kasihan.
+Hindari raw path, URL, request ID, tenant ID, transaction ID, user ID, client IP, dan exception message sebagai label.
 
 ## Baseline Metrics
+
+Process:
+
+```text
+service_process_info{component="http|worker|scheduler"}
+```
 
 HTTP:
 
@@ -60,7 +67,7 @@ service_http_request_duration_seconds_count
 service_http_request_duration_seconds_sum
 ```
 
-Outbound HTTP:
+Outbound:
 
 ```text
 service_outbound_http_requests_total
@@ -68,27 +75,37 @@ service_outbound_http_request_duration_seconds_count
 service_outbound_http_request_duration_seconds_sum
 ```
 
-## Request Metrics
+Worker:
 
-Inbound request dikelompokkan berdasarkan:
-- method
-- status class
+```text
+service_worker_jobs_in_flight
+service_worker_jobs_total
+service_worker_job_duration_seconds_count
+service_worker_job_duration_seconds_sum
+service_worker_reclaimed_total
+```
 
-Path sengaja tidak menjadi label baseline.
+Scheduler:
 
-Jika sebuah service benar-benar membutuhkan route-level metrics, gunakan route template yang bounded, bukan raw URL.
+```text
+service_scheduler_tasks_in_flight
+service_scheduler_runs_total
+service_scheduler_run_duration_seconds_count
+service_scheduler_run_duration_seconds_sum
+```
 
-## Outbound Metrics
+## Worker Metrics
 
-Outbound request dikelompokkan berdasarkan:
-- dependency
-- method
-- status class/network_error
+Job worker dikelompokkan berdasarkan `job_type` dan hasil bounded: `success`, `retry`, `dead_letter`, `abandoned`, `internal_error`, `invalid_payload`, atau `unknown_type`.
 
-`dependency` wajib logical name yang bounded.
+## Scheduler Metrics
+
+Scheduler mencatat callback aktif, hasil `success|error`, dan durasi berdasarkan nama task yang sudah divalidasi. Task name harus stabil dan low-cardinality.
+
+## Lifecycle
+
+Listener metrics worker/scheduler dimulai oleh entrypoint process dan dihentikan saat graceful shutdown.
 
 ## Future Extension
 
-OpenTelemetry, histogram buckets, RED/USE dashboards, dan tracing dapat ditambahkan kemudian bila service memerlukannya.
-
-Jangan memaksa tracing stack ke setiap microservice starter sebelum ada backend collector dan operational ownership yang jelas.
+OpenTelemetry, histogram buckets, RED/USE dashboards, dan tracing dapat ditambahkan bila service memerlukannya dan backend observability sudah memiliki operational ownership yang jelas.
