@@ -24,6 +24,8 @@ Format mengikuti semantic versioning.
 - dedicated Bun.cron scheduler process, registry, runner, tests, and Compose overlay
 
 ### Changed
+- Compose now separates runtime, database, and queue networks; HTTP container health uses database-aware readiness
+- migration runner supports dedicated `MIGRATION_DATABASE_URL` credentials so application runtime need not hold DDL privileges
 - production image no longer copies TypeScript `database/` source; database operations are bundled into standalone binaries
 - shared Docker image no longer owns an HTTP-only healthcheck; Compose now defines health per process role
 - Compose stop grace, runtime resource bounds, and json-file log rotation aligned with application lifecycle
