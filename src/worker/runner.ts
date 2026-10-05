@@ -7,6 +7,7 @@ import type { RedisStreamMessage, RedisStreamQueue } from './queue';
 export interface WorkerRunnerOptions {
   workerId: string;
   handlers: JobHandlerRegistry;
+  onReady?: () => void;
 }
 
 type WorkerMetricResult =
@@ -28,6 +29,7 @@ export class WorkerRunner {
 
   async run(): Promise<void> {
     await this.queue.ensureGroup();
+    this.options.onReady?.();
 
     logger.info('Worker started', {
       worker_id: this.options.workerId,
