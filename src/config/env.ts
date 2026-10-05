@@ -1,4 +1,44 @@
+import { readFileSync } from 'node:fs';
 import { z } from 'zod';
+
+type RawEnv = Record<string, string | undefined>;
+
+const FILE_BACKED_SECRETS = [
+  ['DATABASE_URL', 'DATABASE_URL_FILE'],
+  ['MIGRATION_DATABASE_URL', 'MIGRATION_DATABASE_URL_FILE'],
+  ['REDIS_URL', 'REDIS_URL_FILE'],
+  ['METRICS_TOKEN', 'METRICS_TOKEN_FILE'],
+] as const;
+
+export function resolveFileBackedSecrets(env: RawEnv): RawEnv {
+  const resolved = { ...env };
+
+  for (const [valueKey, fileKey] of FILE_BACKED_SECRETS) {
+    const directValue = resolved[valueKey];
+    const filePath = resolved[fileKey];
+
+    if (directValue && filePath) {
+      throw new Error(`${valueKey} and ${fileKey} cannot both be set`);
+    }
+
+    if (directValue || !filePath) continue;
+
+    let value: string;
+    try {
+      value = readFileSync(filePath, 'utf8').trim();
+    } catch (error: unknown) {
+      throw new Error(`Failed to read secret file for ${valueKey}`, { cause: error });
+    }
+
+    if (!value) {
+      throw new Error(`${fileKey} points to an empty secret file`);
+    }
+
+    resolved[valueKey] = value;
+  }
+
+  return resolved;
+}
 
 const booleanFromEnv = z.preprocess((value) => {
   if (typeof value === 'boolean') return value;
@@ -196,8 +236,8 @@ export const envSchema = z
 
 export type EnvConfig = z.infer<typeof envSchema>;
 
-export function loadEnv(env: Record<string, string | undefined> = process.env): EnvConfig {
-  const result = envSchema.safeParse(env);
+export function loadEnv(env: RawEnv = process.env): EnvConfig {
+  const result = envSchema.safeParse(resolveFileBackedSecrets(env));
   if (!result.success) {
     process.stderr.write(
       `Invalid environment variables:\n${JSON.stringify(result.error.format(), null, 2)}\n`
