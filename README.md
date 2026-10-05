@@ -31,6 +31,8 @@ Untuk Docker penuh:
 docker compose up --build
 ```
 
+Compose menjalankan one-shot `./migrate up` setelah MySQL healthy. App baru start jika migration exit 0. Migration dibundle ke binary melalui static registry, jadi runtime image tidak perlu membawa source TypeScript `database/`. Seeder tetap explicit melalui profile `seed`.
+
 Shared image tidak memiliki image-level healthcheck karena image yang sama menjalankan server, worker, dan scheduler. Compose memasang health probe per role, graceful-stop budget, resource limit baseline, dan log rotation. Worker/scheduler memakai loopback process health pada `127.0.0.1:9465`.
 
 `docker compose up` otomatis menjalankan one-shot `./migrate up` setelah MySQL healthy dan baru menjalankan app setelah migration sukses. Seeder tetap opt-in:
