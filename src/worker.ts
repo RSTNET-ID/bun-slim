@@ -2,6 +2,10 @@ import { hostname } from 'node:os';
 import { config } from '@/config';
 import { closeDbClient } from '@/database/client';
 import { logger } from '@/shared/logger';
+import {
+  startProcessMetricsServer,
+  stopProcessMetricsServer,
+} from '@/shared/observability/metrics-server';
 import { closeRedisClient, connectRedisClient } from '@/worker/client';
 import { RedisStreamQueue } from '@/worker/queue';
 import { jobHandlers } from '@/worker/registry';
@@ -18,6 +22,7 @@ const runner = new WorkerRunner(queue, {
   workerId,
   handlers: jobHandlers,
 });
+const metricsServer = startProcessMetricsServer('worker');
 
 let shuttingDown = false;
 
@@ -43,6 +48,7 @@ process.on('SIGINT', () => {
 try {
   await runner.run();
 } finally {
+  await stopProcessMetricsServer(metricsServer);
   closeRedisClient();
   await closeDbClient();
   logger.info('Worker stopped', { worker_id: workerId });
