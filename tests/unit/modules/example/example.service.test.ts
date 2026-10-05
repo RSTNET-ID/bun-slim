@@ -1,21 +1,24 @@
 /**
  * Unit Tests — ExampleService
  *
- * Scope: Business logic di ExampleService menggunakan in-memory repository.
+ * Scope: Business logic di ExampleService menggunakan test-only in-memory repository.
  * Tidak ada HTTP, tidak ada DB connection.
  */
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { ExampleRepository } from '@/modules/example/example.repository';
+import {
+  InMemoryExampleRepository,
+  TEST_EXAMPLE_CATEGORY_IDS,
+} from '../../../helpers/in-memory-example.repository';
 import { ExampleService } from '@/modules/example/example.service';
 import { NotFoundError } from '@/shared/errors';
 import { EXAMPLE_CATEGORY_IDS } from '@/modules/example/example.constants';
 
 describe('ExampleService — unit', () => {
-  let repository: ExampleRepository;
+  let repository: InMemoryExampleRepository;
   let service: ExampleService;
 
   beforeEach(() => {
-    repository = new ExampleRepository(true);
+    repository = new InMemoryExampleRepository();
     service = new ExampleService(repository);
   });
 
