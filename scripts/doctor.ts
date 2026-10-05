@@ -210,11 +210,11 @@ async function runDoctor(options: DoctorOptions): Promise<number> {
       detail: 'network check disabled by --offline',
     });
   } else {
-    const { getDbClient, closeDbClient } = await import('@/database/client');
+    const { createDbClient } = await import('@/database/client');
+    const sql = createDbClient();
 
     try {
       const startedAt = performance.now();
-      const sql = getDbClient();
       await sql`SELECT 1`;
       checks.push({
         name: 'database',
@@ -228,7 +228,7 @@ async function runDoctor(options: DoctorOptions): Promise<number> {
         detail: `${config.DB_DRIVER} connection check failed`,
       });
     } finally {
-      await closeDbClient();
+      await sql.close({ timeout: 5 });
     }
 
     if (!config.REDIS_URL) {
