@@ -8,6 +8,7 @@ const REQUIRED_FILES = [
   'CHANGELOG.md',
   '.env.example',
   '.gitignore',
+  'renovate.json',
   'Dockerfile',
   'docker-compose.yml',
   'docker-compose.worker.yml',
@@ -196,6 +197,12 @@ if (!dockerfile.includes('/app/dist/seed ./seed')) {
 if (dockerfile.includes('/app/database/')) {
   failures.push('runtime image must not copy database TypeScript source');
 }
+if (
+  !packageJson.scripts?.build?.includes('build:migrate') ||
+  !packageJson.scripts?.build?.includes('build:seed')
+) {
+  failures.push('main build must compile migrate and seed binaries');
+}
 if (/^\s*HEALTHCHECK\b/m.test(dockerfile)) {
   failures.push('shared runtime image must not define a role-specific HEALTHCHECK');
 }
@@ -323,6 +330,21 @@ if (!deadLetterCli.includes('always requires --force')) {
 }
 if (!deadLetterCli.includes('Production DLQ replay requires --force')) {
   failures.push('DLQ CLI must keep production replay guard');
+}
+
+const ciWorkflow = await Bun.file('.github/workflows/ci.yml').text();
+for (const requiredAction of [
+  'aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25',
+  'anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c',
+]) {
+  if (!ciWorkflow.includes(requiredAction)) {
+    failures.push(`CI must include pinned container supply-chain action: ${requiredAction}`);
+  }
+}
+
+const renovateConfig = await Bun.file('renovate.json').text();
+if (!renovateConfig.includes('docker:pinDigests')) {
+  failures.push('Renovate config must keep Docker digest pinning enabled');
 }
 
 const agents = await Bun.file('AGENTS.md').text();
