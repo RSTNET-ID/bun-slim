@@ -376,8 +376,15 @@ for (const requiredAction of [
 }
 
 const renovateConfig = await Bun.file('renovate.json').text();
-if (!renovateConfig.includes('docker:pinDigests')) {
-  failures.push('Renovate config must keep Docker digest pinning enabled');
+for (const fragment of [
+  'docker:pinDigests',
+  'helpers:pinGitHubActionDigests',
+  '"main"',
+  '"mysql-v8"',
+]) {
+  if (!renovateConfig.includes(fragment)) {
+    failures.push(`Renovate config missing required multi-branch supply-chain policy: ${fragment}`);
+  }
 }
 
 const agents = await Bun.file('AGENTS.md').text();
