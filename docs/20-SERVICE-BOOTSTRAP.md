@@ -10,7 +10,7 @@ Saat membuat service baru:
 
 1. clone/copy starter
 2. ubah `package.json.name`
-3. ubah `SERVICE_NAME` di `.env.example`
+3. ubah `SERVICE_NAME` di `.env.example`; staging/production menolak nilai default `example-service`
 4. isi `docs/00-PROJECT.md` dengan responsibility/non-responsibility service
 5. hapus module example setelah module nyata tersedia
 6. tentukan kebutuhan schema, index, transaction, dan isolation MySQL 8
@@ -84,6 +84,8 @@ Pastikan:
 - secret hanya berasal dari secret/env management deployment
 - database user least-privilege
 - Redis tidak public bila worker digunakan
+- pastikan `REDIS_NAMESPACE` efektif unik; default-nya `<SERVICE_NAME>:<APP_ENV>`
+- bila Redis dishare lintas trust boundary, gunakan credential/ACL terpisah dengan key pattern sesuai namespace
 - reverse proxy timeout/body limit sesuai service
 - readiness/liveness terhubung ke orchestrator/load balancer
 - termination grace period > drain delay + shutdown timeout
