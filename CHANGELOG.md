@@ -7,6 +7,8 @@ Format mengikuti semantic versioning.
 ## Unreleased - mysql-v8
 
 ### Added
+- compiled migrate/seed binaries with one-shot Compose auto-migration gate
+- Trivy image scanning, SPDX SBOM generation, and Renovate multi-branch digest pinning policy
 - compiled `migrate` and `seed` runtime binaries with static migration/seeder registries
 - one-shot Compose migration gate before app/worker/scheduler startup and opt-in seed profile
 - Trivy final-image vulnerability scan, SPDX SBOM generation, and Renovate Docker digest-pin policy
