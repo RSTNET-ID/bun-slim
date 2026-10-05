@@ -1,10 +1,8 @@
 # syntax=docker/dockerfile:1.7
-ARG BUN_VERSION=1.4.0
-
 # ─────────────────────────────────────────────────────────────────────────────
 # STAGE 0: BASE — Bun build environment, pinned to UTC
 # ─────────────────────────────────────────────────────────────────────────────
-FROM oven/bun:${BUN_VERSION}-alpine AS base
+FROM oven/bun:1.4.0-alpine AS base
 
 ENV TZ=UTC
 
