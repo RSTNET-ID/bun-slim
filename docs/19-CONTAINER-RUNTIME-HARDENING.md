@@ -156,7 +156,18 @@ Gunakan:
 
 `/tmp` tersedia sebagai tmpfs kecil.
 
-Folder `database/` masih ikut runtime image karena migration/seeder runner saat ini memerlukan migration/seed assets. Menghilangkan folder ini membutuhkan packaging migration/seeder yang terpisah dan tidak dilakukan hanya demi kosmetik image size.
+Migration dan seeder source tidak ikut runtime image.
+
+Build menghasilkan standalone:
+
+```text
+./migrate
+./seed
+```
+
+Migration/seeder modules di-bundle melalui static registries yang ikut compilation graph. `migrate create` dan `seed:create` memperbarui registry source; release check menolak registry yang tidak sinkron dengan file migration/seeder.
+
+Compose menjalankan `./migrate up` sebagai one-shot dependency sebelum application roles start. Seeder tetap explicit/opt-in.
 
 ## Image Freshness
 
@@ -168,7 +179,7 @@ docker build --pull ...
 
 agar mutable base tag diperiksa ulang pada build.
 
-Untuk production supply-chain yang lebih ketat, pin image ke digest dan gunakan automated dependency update agar digest tidak membeku selamanya.
+Repository menyediakan `renovate.json` dengan preset `docker:pinDigests`. Setelah Renovate diaktifkan pada repository, Docker base/service image harus dipin ke digest dan digest update masuk sebagai PR reviewable, bukan dibekukan manual selamanya.
 
 ## CI Validation
 
@@ -178,6 +189,6 @@ Container validation baseline:
 2. build production image dengan `--pull`
 3. verify runtime UID non-root
 4. smoke-test HTTP liveness
-5. run repository release guards untuk health ownership, stop grace, UTC, dan standalone build flags
-
-Image vulnerability scanning dan SBOM tetap direkomendasikan pada release pipeline bila scanner tersedia.
+5. scan final image dengan Trivy untuk HIGH/CRITICAL vulnerability yang sudah memiliki fix
+6. generate SPDX JSON SBOM dari final image
+7. run repository release guards untuk health ownership, migration packaging, stop grace, UTC, dan standalone build flags
