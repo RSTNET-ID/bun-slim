@@ -131,6 +131,10 @@ docker compose \
   up --build
 ```
 
+## Optional Metrics
+
+HTTP server menyajikan `/metrics` pada `PORT`. Worker dan scheduler memakai listener terpisah pada `METRICS_HOST:METRICS_PORT` (default `0.0.0.0:9464`). Saat `METRICS_ENABLED=true`, set `METRICS_TOKEN` minimal 24 karakter. Lihat `docs/15-METRICS-STANDARD.md`.
+
 ## Optional Bun.cron Scheduler
 
 Scheduler menggunakan dedicated process `src/scheduler.ts`, bukan HTTP server.
