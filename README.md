@@ -158,6 +158,16 @@ docker compose \
 
 Register job handler di `src/worker/registry.ts` dan enqueue melalui `@/worker/producer`.
 
+Redis key otomatis diisolasi dengan namespace `<SERVICE_NAME>:<APP_ENV>`. Contoh production untuk `SERVICE_NAME=artavax`:
+
+```text
+artavax:production:queue:default:stream
+artavax:production:queue:default:dead
+artavax:production:queue:default:workers
+```
+
+Override `REDIS_NAMESPACE` hanya bila membutuhkan scope tambahan seperti site/cluster. Shared Redis lintas service sebaiknya juga memakai Redis ACL terpisah; namespace mencegah collision, bukan authorization.
+
 Lihat `docs/12-WORKER-REDIS-STANDARD.md` untuk delivery semantics, retry, dead-letter, stale reclaim, idempotency, dan graceful shutdown.
 
 ## Optional Bun.cron Scheduler
