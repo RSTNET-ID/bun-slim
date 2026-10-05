@@ -38,7 +38,7 @@ Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
 - Tulis SQL eksplisit di repository dengan parameterized tagged templates.
 - Gunakan kemampuan native Bun.SQL untuk conditional fragments (`sql\`...\``), object insert/update (`${sql(object)}`), value lists, typed result generics, pooling, dan transaction executor sebelum menambah abstraction baru.
 - Production repository harus DB-only. In-memory/fake repository hanya berada di test code, bukan sebagai fallback di `src/`.
-- Repository boleh menerima `SQL | TransactionSQL`/transaction context agar query yang sama dapat ikut transaction tanpa membuat query API baru.
+- Repository bergantung pada kontrak `SQL`; `TransactionSQL` extends `SQL`, sehingga executor dari transaction callback dapat dipakai langsung tanpa query API tambahan.
 - Repository contract kecil boleh dibuat untuk kebutuhan testability/inversion yang konkret; jangan mengubahnya menjadi repository framework generik.
 - Gunakan Bun.SQL dengan `DB_DRIVER=mysql`.
 - Gunakan parameterized tagged templates.
