@@ -3,7 +3,8 @@
   "extends": [
     "config:recommended",
     "docker:pinDigests",
-    "docker:disableMajor"
+    "docker:disableMajor",
+    "helpers:pinGitHubActionDigests"
   ],
   "baseBranches": [
     "main",
@@ -13,25 +14,31 @@
   "prConcurrentLimit": 5,
   "packageRules": [
     {
-      "description": "Keep Docker digest updates reviewable",
+      "description": "Keep Docker digest pin/update PRs reviewable",
       "matchDatasources": ["docker"],
       "matchUpdateTypes": ["digest", "pinDigest"],
       "groupName": "container digests",
       "automerge": false
     },
     {
-      "description": "Keep infrastructure image tags stable; receive security/base rebuilds through digest updates",
+      "description": "Keep infrastructure image tags stable; refresh content through digest PRs",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["alpine", "postgres", "mysql", "redis"],
       "matchUpdateTypes": ["major", "minor", "patch"],
       "enabled": false
     },
     {
-      "description": "Allow Bun patch updates within the selected minor line",
+      "description": "Keep Bun on the selected minor line while allowing patch upgrades",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["oven/bun"],
-      "matchUpdateTypes": ["minor"],
+      "matchUpdateTypes": ["major", "minor"],
       "enabled": false
+    },
+    {
+      "description": "Keep GitHub Action SHA updates reviewable",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "automerge": false
     }
   ]
 }
