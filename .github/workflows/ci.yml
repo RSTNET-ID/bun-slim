@@ -143,7 +143,7 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.scheduler.yml config >/dev/null
 
       - name: Build production image
-        run: docker build -t bun-slim:ci .
+        run: docker build --pull -t bun-slim:ci .
 
       - name: Verify non-root runtime user
         run: |
