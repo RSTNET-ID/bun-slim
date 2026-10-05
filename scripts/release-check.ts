@@ -40,6 +40,7 @@ const REQUIRED_FILES = [
   'docs/25-SCHEDULER-STANDARD.md',
   'docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md',
   'docs/27-RUNTIME-DOCTOR.md',
+  'docs/28-FILE-BACKED-SECRETS.md',
   'src/scheduler.ts',
   'src/scheduler/runner.ts',
   'src/shared/observability/metrics-server.ts',
@@ -116,7 +117,7 @@ for (const script of REQUIRED_SCRIPTS) {
 }
 
 const gitignore = await Bun.file('.gitignore').text();
-for (const pattern of ['.env', 'dist/', 'node_modules/']) {
+for (const pattern of ['.env', '.env.*', '!.env.example', 'secrets/', 'dist/', 'node_modules/']) {
   if (!gitignore.includes(pattern)) {
     failures.push(`.gitignore must include: ${pattern}`);
   }
@@ -132,6 +133,13 @@ for (const fragment of [
 ]) {
   if (!envConfigSource.includes(fragment)) {
     failures.push(`file-backed secret support missing required behavior: ${fragment}`);
+  }
+}
+
+const dockerignore = await Bun.file('.dockerignore').text();
+for (const pattern of ['.env', '.env.*', 'secrets/', '*.pem', '*.key']) {
+  if (!dockerignore.includes(pattern)) {
+    failures.push(`.dockerignore must include: ${pattern}`);
   }
 }
 
