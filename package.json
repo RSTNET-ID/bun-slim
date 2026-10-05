@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/server.ts",
-    "build": "bun run build:server && bun run build:worker && bun run build:scheduler && bun run build:job-dead && bun run build:doctor",
+    "build": "bun run build:server && bun run build:worker && bun run build:scheduler && bun run build:job-dead && bun run build:doctor && bun run build:migrate && bun run build:seed",
     "start": "./dist/server",
     "start:dev": "bun src/server.ts",
     "route:list": "bun scripts/route-list.ts",
@@ -41,7 +41,9 @@
     "build:job-dead": "bun build --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig ./scripts/job-dead.ts --outfile dist/job-dead",
     "doctor": "bun scripts/doctor.ts",
     "doctor:offline": "bun scripts/doctor.ts --offline",
-    "build:doctor": "bun build --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig ./scripts/doctor.ts --outfile dist/doctor"
+    "build:doctor": "bun build --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig ./scripts/doctor.ts --outfile dist/doctor",
+    "build:migrate": "bun build --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig ./database/migrate.ts --outfile dist/migrate",
+    "build:seed": "bun build --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig ./database/seed.ts --outfile dist/seed"
   },
   "dependencies": {
     "hono": "^4.7.0",
