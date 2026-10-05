@@ -131,7 +131,7 @@ async function runDoctor(options: DoctorOptions): Promise<number> {
     checks.push({
       name: 'database-ca',
       status: exists ? 'pass' : 'fail',
-      detail: exists ? 'configured CA file is readable' : 'configured CA file does not exist',
+      detail: exists ? 'configured CA file exists' : 'configured CA file does not exist',
     });
   } else {
     checks.push({
