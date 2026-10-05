@@ -40,12 +40,10 @@ export function buildRedisQueueNames(
   namespace: string,
   queueName: string
 ): RedisQueueNames {
-  const base = redisKey(namespace, 'queue', queueName);
-
   return {
-    streamKey: redisKey(base, 'stream'),
-    deadLetterKey: redisKey(base, 'dead'),
-    groupName: redisKey(base, 'workers'),
+    streamKey: redisKey(namespace, 'queue', queueName, 'stream'),
+    deadLetterKey: redisKey(namespace, 'queue', queueName, 'dead'),
+    groupName: redisKey(namespace, 'queue', queueName, 'workers'),
   };
 }
 
