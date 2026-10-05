@@ -4,10 +4,10 @@ import { logger } from '@/shared/logger';
 
 let sqlClient: SQL | null = null;
 
-export function createDbClient(): SQL {
+export function createDbClient(url: string = config.DATABASE_URL): SQL {
   return new SQL({
     adapter: config.DB_DRIVER,
-    url: config.DATABASE_URL,
+    url,
     max: config.DB_POOL_MAX,
     idleTimeout: config.DB_IDLE_TIMEOUT_SECONDS,
     connectionTimeout: config.DB_CONNECTION_TIMEOUT_SECONDS,
