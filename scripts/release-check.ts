@@ -208,7 +208,7 @@ if (!dockerfile.includes('/app/dist/job-dead ./job-dead')) {
 if (!dockerfile.includes('/app/dist/doctor ./doctor')) {
   failures.push('runtime image must include compiled doctor binary');
 }
-if (dockerfile.includes('HEALTHCHECK ')) {
+if (/^\s*HEALTHCHECK\b/m.test(dockerfile)) {
   failures.push('shared runtime image must not define a role-specific HEALTHCHECK');
 }
 if (!dockerfile.includes('ENV TZ=UTC') || dockerfile.includes('ARG TZ')) {
