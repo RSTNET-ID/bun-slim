@@ -142,7 +142,7 @@ export class ExampleRepository {
       return await runTransaction((tx) => this.update(id, data, tx));
     }
 
-    const sql: DbExecutor = executor;
+    const sql: SQL = executor;
     const [existing] = await sql<{ id: string }[]>`
       SELECT id
       FROM examples
