@@ -336,6 +336,12 @@ if (
 ) {
   failures.push('production migration CLI must guard destructive/source-generation commands');
 }
+if (
+  !migrationRunner.includes('GET_LOCK') ||
+  !migrationRunner.includes('Could not acquire MySQL migration lock within 30s')
+) {
+  failures.push('MySQL migration lock acquisition must be bounded');
+}
 
 const migrationRegistry = await Bun.file('database/migrations/registry.ts').text();
 const migrationFiles = readdirSync('database/migrations')
