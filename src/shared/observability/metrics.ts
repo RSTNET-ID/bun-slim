@@ -12,7 +12,14 @@ function statusClass(status: number): string {
   return `${Math.floor(status / 100)}xx`;
 }
 
-type WorkerResult = 'success' | 'retry' | 'dead_letter' | 'invalid_payload' | 'unknown_type';
+type WorkerResult =
+  | 'success'
+  | 'retry'
+  | 'dead_letter'
+  | 'abandoned'
+  | 'internal_error'
+  | 'invalid_payload'
+  | 'unknown_type';
 type SchedulerResult = 'success' | 'error';
 
 export class ServiceMetrics {
@@ -71,9 +78,18 @@ export class ServiceMetrics {
     this.workerInFlight += 1;
   }
 
-  workerJobFinished(jobType: string, result: WorkerResult, durationMs: number): void {
+  workerJobSettled(): void {
     this.workerInFlight = Math.max(0, this.workerInFlight - 1);
-    this.recordWorkerOutcome(jobType, result, durationMs);
+  }
+
+  recordWorkerOutcome(jobType: string, result: WorkerResult, durationMs: number): void {
+    const key = `${jobType}|${result}`;
+    this.workerJobs.set(key, (this.workerJobs.get(key) ?? 0) + 1);
+
+    const current = this.workerDurationMs.get(key) ?? { count: 0, sum: 0 };
+    current.count += 1;
+    current.sum += durationMs;
+    this.workerDurationMs.set(key, current);
   }
 
   recordWorkerRejected(result: 'invalid_payload' | 'unknown_type'): void {
@@ -236,15 +252,6 @@ export class ServiceMetrics {
     this.schedulerDurationMs.clear();
   }
 
-  private recordWorkerOutcome(jobType: string, result: WorkerResult, durationMs: number): void {
-    const key = `${jobType}|${result}`;
-    this.workerJobs.set(key, (this.workerJobs.get(key) ?? 0) + 1);
-
-    const current = this.workerDurationMs.get(key) ?? { count: 0, sum: 0 };
-    current.count += 1;
-    current.sum += durationMs;
-    this.workerDurationMs.set(key, current);
-  }
 }
 
 export const serviceMetrics = new ServiceMetrics();
