@@ -26,6 +26,14 @@ http://METRICS_HOST:METRICS_PORT/metrics
 
 Dalam deployment container, worker dan scheduler boleh memakai nomor port internal yang sama karena berada di network namespace berbeda. Jika dua process dijalankan pada host namespace yang sama, gunakan port metrics yang berbeda.
 
+## Process Health Separation
+
+Worker/scheduler process health memakai listener loopback terpisah pada `PROCESS_HEALTH_PORT=9465`.
+
+Metrics tetap memakai `METRICS_HOST:METRICS_PORT` dan dapat membutuhkan bearer authentication. Jika metrics aktif, `METRICS_PORT` dan `PROCESS_HEALTH_PORT` tidak boleh sama.
+
+Health listener tidak membawa metrics dan tidak dipublish ke host pada baseline Compose.
+
 ## Security
 
 `/metrics` bukan endpoint publik untuk end user. Authorization memakai:
