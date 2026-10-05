@@ -133,6 +133,20 @@ logging:
 
 Ini mencegah log container tumbuh tanpa batas pada host.
 
+## Network Segmentation
+
+Compose memisahkan tiga trust zone:
+
+```text
+runtime  = application processes dengan outbound access
+database = internal network untuk PostgreSQL/MySQL
+queue    = internal network untuk Redis
+```
+
+Database hanya berada di `database`. Redis hanya berada di `queue`. One-shot migration/seeder hanya bergabung ke `database`, sedangkan app/worker/scheduler dapat bergabung ke runtime + dependency networks yang diperlukan.
+
+Network segmentation adalah defense-in-depth, bukan pengganti authentication, database grants, Redis ACL, atau firewall/orchestrator policy.
+
 ## Network Exposure
 
 Baseline Compose hanya publish HTTP app ke loopback host:
