@@ -203,13 +203,13 @@ async function cmdStatus(): Promise<void> {
 const [command, ...args] = process.argv.slice(2);
 
 function assertProductionMigrationCommandAllowed(): void {
-  if (config.APP_ENV !== 'production') return;
+  if (config.APP_ENV !== 'staging' && config.APP_ENV !== 'production') return;
 
   if (command === 'create') {
-    throw new Error('migrate create is disabled in production');
+    throw new Error('migrate create is disabled in staging/production');
   }
 
-  if (command === 'down' && !args.includes('--force')) {
+  if (config.APP_ENV === 'production' && command === 'down' && !args.includes('--force')) {
     throw new Error('Production migrate down requires --force');
   }
 }
