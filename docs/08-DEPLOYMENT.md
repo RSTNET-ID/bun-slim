@@ -85,6 +85,24 @@ docker compose --profile seed run --rm seed
 
 Production seeding tetap membutuhkan `--force` dan harus menjadi tindakan operasional yang disengaja.
 
+### Migration Credential Boundary
+
+Production sebaiknya memakai dua database identity:
+
+```text
+DATABASE_URL
+  -> application runtime role
+  -> DML minimum yang dibutuhkan service
+
+MIGRATION_DATABASE_URL
+  -> migration job only
+  -> DDL/schema privileges
+```
+
+`MIGRATION_DATABASE_URL` hanya diberikan ke one-shot migration job. App/worker/scheduler tidak perlu menerima credential DDL tersebut.
+
+Jika `MIGRATION_DATABASE_URL` tidak diisi, migration runner fallback ke `DATABASE_URL` untuk compatibility/development. Production deployment sebaiknya menggunakan role terpisah agar compromise pada API runtime tidak otomatis memberikan hak mengubah schema.
+
 ### Production Orchestrator Rule
 
 Auto-migrate berarti **satu pre-deploy migration job**, bukan migration di setiap application replica.
@@ -115,6 +133,32 @@ SCHEDULER_ENABLED=true ./doctor && exec ./scheduler
 Untuk validasi image/config tanpa dependency network gunakan `./doctor --offline`.
 
 Doctor adalah pre-start validation, bukan liveness probe periodik.
+
+## Network Segmentation
+
+Compose baseline memiliki tiga network:
+
+```text
+runtime   -> outbound-capable application network
+database  -> internal-only database network
+queue     -> internal-only Redis/queue network
+```
+
+Connectivity baseline:
+
+```text
+app        -> runtime + database + queue
+worker     -> runtime + database + queue
+scheduler  -> runtime + database + queue
+migrate    -> database only
+seed       -> database only
+database   -> database only
+redis      -> queue only
+```
+
+Database dan Redis tidak berbagi network langsung. Migration/seeder juga tidak memperoleh general outbound network pada baseline.
+
+HTTP Compose healthcheck memakai `/health/ready`, sehingga status healthy mencakup database readiness dan drain state. `/health/live` tetap digunakan sebagai liveness semantics untuk orchestrator yang mendukung probe terpisah.
 
 ## Container Health and Stop Budget
 
