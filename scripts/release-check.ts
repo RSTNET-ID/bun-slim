@@ -45,6 +45,7 @@ const REQUIRED_FILES = [
   'src/shared/observability/metrics-server.ts',
   'src/shared/lifecycle/process-health.ts',
   'tests/unit/shared/lifecycle/process-health.test.ts',
+  'tests/unit/config/env-file-secrets.test.ts',
   'src/scheduler/registry.ts',
   'database/migrate.ts',
   'database/seed.ts',
@@ -118,6 +119,19 @@ const gitignore = await Bun.file('.gitignore').text();
 for (const pattern of ['.env', 'dist/', 'node_modules/']) {
   if (!gitignore.includes(pattern)) {
     failures.push(`.gitignore must include: ${pattern}`);
+  }
+}
+
+const envConfigSource = await Bun.file('src/config/env.ts').text();
+for (const fragment of [
+  'resolveFileBackedSecrets',
+  'DATABASE_URL_FILE',
+  'MIGRATION_DATABASE_URL_FILE',
+  'REDIS_URL_FILE',
+  'METRICS_TOKEN_FILE',
+]) {
+  if (!envConfigSource.includes(fragment)) {
+    failures.push(`file-backed secret support missing required behavior: ${fragment}`);
   }
 }
 
