@@ -51,6 +51,18 @@ describe('production environment security guards', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects metrics and process health port collisions', () => {
+    const result = envSchema.safeParse({
+      ...productionBase,
+      METRICS_ENABLED: 'true',
+      METRICS_TOKEN: 'a-strong-metrics-token-value-123456',
+      METRICS_PORT: '9465',
+      PROCESS_HEALTH_PORT: '9465',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('accepts protected production metrics', () => {
     const result = envSchema.safeParse({
       ...productionBase,
