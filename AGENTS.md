@@ -66,6 +66,7 @@ Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
 - Gunakan transactional outbox bila DB write wajib menghasilkan job/event dan kehilangan publish tidak dapat diterima.
 - Dispatcher dan worker tetap at-least-once; consumer harus idempotent.
 - Lihat `docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md`.
+- Gunakan `docs/27-RUNTIME-DOCTOR.md` untuk deployment/pre-start validation.
 
 ## Scheduler
 
