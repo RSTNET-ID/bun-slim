@@ -9,8 +9,6 @@ import type {
   ExampleListQuery,
 } from './example.types';
 
-type DbExecutor = SQL | TransactionContext;
-
 interface ExampleLookupRow extends ExampleItem {
   category__id: string | null;
   category__name: string | null;
@@ -28,7 +26,7 @@ export class ExampleRepository {
     query: ExampleListQuery,
     executor?: TransactionContext
   ): Promise<ExampleItem[]> {
-    const sql: DbExecutor = executor ?? this.db;
+    const sql: SQL = executor ?? this.db;
     const limit = query.limit ?? 20;
     const cursorFilter = query.cursor
       ? sql`AND id > ${query.cursor}`
@@ -59,7 +57,7 @@ export class ExampleRepository {
     id: string,
     executor?: TransactionContext
   ): Promise<ExampleItem | null> {
-    const sql: DbExecutor = executor ?? this.db;
+    const sql: SQL = executor ?? this.db;
     const [row] = await sql<ExampleItem[]>`
       SELECT
         id,
@@ -81,7 +79,7 @@ export class ExampleRepository {
     id: string,
     executor?: TransactionContext
   ): Promise<ExampleWithLookup | null> {
-    const sql: DbExecutor = executor ?? this.db;
+    const sql: SQL = executor ?? this.db;
     const [row] = await sql<ExampleLookupRow[]>`
       SELECT
         e.id,
@@ -111,7 +109,7 @@ export class ExampleRepository {
       return await runTransaction((tx) => this.create(data, tx));
     }
 
-    const sql: DbExecutor = executor;
+    const sql: SQL = executor;
     const now = new Date();
     const newItem: ExampleItem = {
       id: crypto.randomUUID(),
@@ -176,7 +174,7 @@ export class ExampleRepository {
   }
 
   async delete(id: string, executor?: TransactionContext): Promise<boolean> {
-    const sql: DbExecutor = executor ?? this.db;
+    const sql: SQL = executor ?? this.db;
     const result = await sql`
       DELETE FROM examples
       WHERE id = ${id}
