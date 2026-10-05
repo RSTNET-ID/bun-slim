@@ -1,20 +1,23 @@
 /**
  * Unit Tests — ExampleService
  *
- * Scope: Business logic di ExampleService menggunakan in-memory repository.
+ * Scope: Business logic di ExampleService menggunakan test-only in-memory repository.
  * Tidak ada HTTP, tidak ada DB connection.
  */
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { ExampleRepository } from '@/modules/example/example.repository';
+import {
+  InMemoryExampleRepository,
+  TEST_EXAMPLE_CATEGORY_IDS,
+} from '../../../helpers/in-memory-example.repository';
 import { ExampleService } from '@/modules/example/example.service';
 import { NotFoundError } from '@/shared/errors';
 
 describe('ExampleService — unit', () => {
-  let repository: ExampleRepository;
+  let repository: InMemoryExampleRepository;
   let service: ExampleService;
 
   beforeEach(() => {
-    repository = new ExampleRepository(true);
+    repository = new InMemoryExampleRepository();
     service = new ExampleService(repository);
   });
 
@@ -33,8 +36,8 @@ describe('ExampleService — unit', () => {
     });
 
     it('should create item with category_id', async () => {
-      const item = await service.create({ name: 'With Category', category_id: 'cat-01' });
-      expect(item.category_id).toBe('cat-01');
+      const item = await service.create({ name: 'With Category', category_id: TEST_EXAMPLE_CATEGORY_IDS.GENERAL });
+      expect(item.category_id).toBe(TEST_EXAMPLE_CATEGORY_IDS.GENERAL);
     });
   });
 
@@ -63,7 +66,7 @@ describe('ExampleService — unit', () => {
     });
 
     it('should return item with resolved category when category_id matches in-memory store', async () => {
-      const created = await service.create({ name: 'Has Category', category_id: 'cat-01' });
+      const created = await service.create({ name: 'Has Category', category_id: TEST_EXAMPLE_CATEGORY_IDS.GENERAL });
       const result = await service.getByIdWithLookup(created.id);
       expect(result.category).not.toBeNull();
       expect(result.category?.code).toBe('GEN');
