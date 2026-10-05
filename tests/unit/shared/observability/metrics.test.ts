@@ -39,6 +39,28 @@ describe('ServiceMetrics', () => {
     );
   });
 
+  it('renders worker and scheduler metrics with bounded labels', () => {
+    metrics.workerJobStarted();
+    metrics.recordWorkerOutcome('email.send', 'retry', 250);
+    metrics.workerJobSettled();
+    metrics.recordWorkerReclaimed(2);
+    metrics.schedulerTaskStarted();
+    metrics.schedulerTaskFinished('daily-sync', 'success', 500);
+
+    const output = metrics.renderPrometheus('worker');
+
+    expect(output).toContain('service_process_info{component="worker"} 1');
+    expect(output).toContain('service_worker_jobs_in_flight 0');
+    expect(output).toContain(
+      'service_worker_jobs_total{job_type="email.send",result="retry"} 1'
+    );
+    expect(output).toContain('service_worker_reclaimed_total 2');
+    expect(output).toContain('service_scheduler_tasks_in_flight 0');
+    expect(output).toContain(
+      'service_scheduler_runs_total{task="daily-sync",result="success"} 1'
+    );
+  });
+
   it('escapes label values safely', () => {
     metrics.recordOutboundRequest('provider"one', 'get', 200, 1);
 
