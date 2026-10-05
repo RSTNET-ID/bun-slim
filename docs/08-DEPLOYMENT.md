@@ -55,6 +55,36 @@ docker compose \
 
 Redis tidak diekspos ke host pada baseline compose.
 
+## Automatic Schema Migration
+
+Compose baseline memakai one-shot `migrate` service:
+
+```text
+PostgreSQL healthy
+      |
+      v
+./migrate up
+      |
+      v
+exit 0
+      |
+      +--> app
+      +--> worker
+      +--> scheduler
+```
+
+Dependent service menggunakan `condition: service_completed_successfully`. Jika migration gagal, application roles tidak start.
+
+Migration binary memakai lock database yang sudah ada, sehingga schema migration tetap serialized. Migration source dibundle melalui static registry ke standalone `./migrate`; runtime image tidak memerlukan folder TypeScript `database/`.
+
+Seeder **tidak** ikut auto-run. Development Compose menyediakan profile eksplisit:
+
+```bash
+docker compose --profile seed run --rm seed
+```
+
+Production seeding tetap membutuhkan `--force` dan harus menjadi tindakan operasional yang disengaja.
+
 ## Pre-start Runtime Doctor
 
 Production image membawa standalone `./doctor`.
