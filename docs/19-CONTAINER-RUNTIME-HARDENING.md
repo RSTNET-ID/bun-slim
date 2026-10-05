@@ -18,7 +18,7 @@ alpine:3.22
   -> curl
   -> dumb-init
   -> libstdc++
-  -> server / worker / scheduler / job-dead / doctor
+  -> server / worker / scheduler / job-dead / doctor / migrate / seed
 ```
 
 Runtime image tidak membawa `node_modules`, package manager, source application lengkap, atau development toolchain.
@@ -54,6 +54,8 @@ Image yang sama menjalankan beberapa process role:
 ./scheduler
 ./job-dead
 ./doctor
+./migrate
+./seed
 ```
 
 Karena itu Dockerfile **tidak** mendefinisikan image-level healthcheck.
