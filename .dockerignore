@@ -14,6 +14,7 @@ build/
 .env.*
 *.pem
 *.key
+secrets/
 
 # 4. Documentation & Test Suites
 docs/
@@ -25,6 +26,7 @@ AGENTS.md
 tmp/
 temp/
 postgres_data/
+mysql_data/
 redis_data/
 
 # 6. Logs & Debug Artifacts
