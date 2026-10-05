@@ -9,7 +9,10 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { Hono } from 'hono';
 import { ExampleHandler } from '@/modules/example/example.handler';
 import { ExampleService } from '@/modules/example/example.service';
-import { ExampleRepository } from '@/modules/example/example.repository';
+import {
+  InMemoryExampleRepository,
+  TEST_EXAMPLE_CATEGORY_IDS,
+} from '../../../helpers/in-memory-example.repository';
 import { globalErrorHandler } from '@/shared/middleware/error-handler';
 import { requestIdMiddleware } from '@/shared/middleware/request-id';
 import {
@@ -23,11 +26,11 @@ import type { AppEnv } from '@/shared/types/context';
 import { EXAMPLE_CATEGORY_IDS } from '@/modules/example/example.constants';
 
 function buildApp() {
-  const repository = new ExampleRepository(true);
+  const repository = new InMemoryExampleRepository();
   const service = new ExampleService(repository);
   const handler = new ExampleHandler(service);
 
-  // Buat route baru dengan handler yang diinjeksi (in-memory)
+  // Buat route baru dengan handler yang diinjeksi test-only repository fake.
   const { exampleRoute: testRoute } = buildTestRoute(handler);
 
   const app = new Hono<AppEnv>();
