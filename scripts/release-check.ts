@@ -304,7 +304,7 @@ if (!migrationRunner.includes('config.MIGRATION_DATABASE_URL ?? config.DATABASE_
 }
 if (
   !migrationRunner.includes('Production migrate down requires --force') ||
-  !migrationRunner.includes('migrate create is disabled in production')
+  !migrationRunner.includes('migrate create is disabled in staging/production')
 ) {
   failures.push('production migration CLI must guard destructive/source-generation commands');
 }
