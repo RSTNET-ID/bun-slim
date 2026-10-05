@@ -149,6 +149,25 @@ jobs:
       - name: Build production image
         run: docker build --pull -t bun-slim:ci .
 
+
+      - name: Scan production image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: bun-slim:ci
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Generate image SBOM
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: bun-slim:ci
+          artifact-name: bun-slim-image.spdx.json
+          format: spdx-json
+          upload-release-assets: false
+
       - name: Verify non-root runtime user
         run: |
           uid="$(docker run --rm --entrypoint id bun-slim:ci -u)"
