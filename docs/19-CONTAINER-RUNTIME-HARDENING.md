@@ -7,7 +7,7 @@ Build stage menggunakan Bun, sedangkan runtime image tidak menginstal package/ru
 Compiled executable Bun tetap membawa runtime yang dibutuhkan di dalam standalone binary. Jadi boundary yang benar adalah:
 
 ```text
-oven/bun:1.4.x-alpine
+oven/bun:1.4.2-alpine
   -> install dependencies
   -> typecheck
   -> compile standalone binaries
@@ -215,7 +215,7 @@ alpine:3.22@sha256:<digest>
 postgres:16-alpine@sha256:<digest>
 mysql:8.0@sha256:<digest>
 redis:7.2-alpine@sha256:<digest>
-oven/bun:1.4.x-alpine@sha256:<digest>
+oven/bun:1.4.2-alpine@sha256:<digest>
 ```
 
 `renovate.json` sendiri tidak menjalankan bot. Repository harus mengaktifkan Renovate GitHub App atau Renovate self-hosted. Sampai initial pin PR diterapkan, CI tetap memakai tag dan `docker build --pull`; setelah pinning, build menjadi reproducible terhadap digest yang direview.
