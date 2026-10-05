@@ -73,22 +73,84 @@ Minimum field:
 - `payload`: business payload
 - `request_id`: optional trace/correlation ID
 
-## Redis Keys
+## Redis Namespace and Keys
 
-Default:
-
-```text
-<WORKER_QUEUE_PREFIX>:<SERVICE_NAME>:<WORKER_QUEUE_NAME>:stream
-<WORKER_QUEUE_PREFIX>:<SERVICE_NAME>:<WORKER_QUEUE_NAME>:dead
-```
-
-Consumer group:
+Semua Redis key harus berada di bawah satu root namespace:
 
 ```text
-<SERVICE_NAME>:workers
+<REDIS_NAMESPACE>:<subsystem>:<resource>
 ```
 
-Prefix harus unik per service/environment bila beberapa environment memakai Redis yang sama.
+Jika `REDIS_NAMESPACE` tidak diisi, runtime otomatis memakai:
+
+```text
+<SERVICE_NAME>:<APP_ENV>
+```
+
+Contoh:
+
+```text
+artavax:production
+wati:staging
+billing:development
+```
+
+Queue worker menggunakan:
+
+```text
+<REDIS_NAMESPACE>:queue:<WORKER_QUEUE_NAME>:stream
+<REDIS_NAMESPACE>:queue:<WORKER_QUEUE_NAME>:dead
+<REDIS_NAMESPACE>:queue:<WORKER_QUEUE_NAME>:workers
+```
+
+Dengan:
+
+```env
+SERVICE_NAME=artavax
+APP_ENV=production
+WORKER_QUEUE_NAME=default
+```
+
+hasilnya:
+
+```text
+artavax:production:queue:default:stream
+artavax:production:queue:default:dead
+artavax:production:queue:default:workers
+```
+
+Untuk deployment/site yang perlu isolasi tambahan, override:
+
+```env
+REDIS_NAMESPACE=artavax:production:idc1
+```
+
+Namespace mencegah **key collision**, tetapi bukan security boundary. Jika service yang tidak saling dipercaya berbagi Redis, gunakan Redis ACL/credential terpisah dan batasi key pattern, misalnya secara konseptual:
+
+```text
+~artavax:production:*
+```
+
+Database index Redis yang berbeda juga bukan pengganti ACL.
+
+### Upgrade from Legacy Queue Keys
+
+Format lama:
+
+```text
+queue:<SERVICE_NAME>:<WORKER_QUEUE_NAME>:stream
+queue:<SERVICE_NAME>:<WORKER_QUEUE_NAME>:dead
+```
+
+tidak dibaca otomatis oleh format baru.
+
+Sebelum rollout ke service yang sudah memiliki pending job:
+1. hentikan producer lama
+2. drain pending/retry/DLQ sesuai kebutuhan operasional
+3. deploy producer + worker baru bersama
+4. verifikasi key baru memakai namespace environment
+
+Jangan mengganti namespace di tengah backlog aktif tanpa migration plan, karena Redis akan menganggapnya sebagai queue yang berbeda.
 
 ## Producer
 
@@ -283,8 +345,10 @@ Job yang sudah diambil tetapi belum di-ACK tetap berada di pending entries dan d
 WORKER_ENABLED=true
 REDIS_URL=redis://redis:6379
 
+# Optional. Defaults to <SERVICE_NAME>:<APP_ENV>.
+# REDIS_NAMESPACE=artavax:production:idc1
+
 WORKER_QUEUE_NAME=default
-WORKER_QUEUE_PREFIX=queue
 WORKER_CONCURRENCY=2
 WORKER_BLOCK_MS=1000
 WORKER_JOB_TIMEOUT_MS=30000
