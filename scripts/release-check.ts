@@ -37,6 +37,7 @@ const REQUIRED_FILES = [
   'src/modules/example/example.constants.ts',
   'docs/25-SCHEDULER-STANDARD.md',
   'docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md',
+  'docs/27-RUNTIME-DOCTOR.md',
   'src/scheduler.ts',
   'src/scheduler/runner.ts',
   'src/shared/observability/metrics-server.ts',
@@ -45,6 +46,8 @@ const REQUIRED_FILES = [
   'database/seed.ts',
   'database/seeders/20240101000000_example_categories.seeder.ts',
   'scripts/job-dead.ts',
+  'scripts/doctor.ts',
+  'tests/unit/scripts/doctor.test.ts',
   'src/worker/dead-letter.ts',
 ] as const;
 
@@ -66,6 +69,9 @@ const REQUIRED_SCRIPTS = [
   'job:dead:replay',
   'job:dead:purge',
   'release:check',
+  'doctor',
+  'doctor:offline',
+  'build:doctor',
 ] as const;
 
 const failures: string[] = [];
@@ -193,6 +199,21 @@ for (const pattern of forbiddenEnvFragments) {
 const dockerfile = await Bun.file('Dockerfile').text();
 if (!dockerfile.includes('/app/dist/job-dead ./job-dead')) {
   failures.push('runtime image must include compiled DLQ operations binary');
+}
+if (!dockerfile.includes('/app/dist/doctor ./doctor')) {
+  failures.push('runtime image must include compiled doctor binary');
+}
+
+const doctorCli = await Bun.file('scripts/doctor.ts').text();
+for (const fragment of [
+  'envSchema.safeParse(process.env)',
+  'await sql`SELECT 1`',
+  "await redis.send('PING', [])",
+  "case '--offline'",
+]) {
+  if (!doctorCli.includes(fragment)) {
+    failures.push(`runtime doctor is missing required behavior: ${fragment}`);
+  }
 }
 
 const deadLetterCli = await Bun.file('scripts/job-dead.ts').text();
