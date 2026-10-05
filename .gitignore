@@ -5,10 +5,11 @@
 node_modules/
 .bun/
 
-# Environment variables
+# Environment variables and mounted/local secrets
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+secrets/
 
 # Build output
 dist/
