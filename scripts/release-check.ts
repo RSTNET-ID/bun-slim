@@ -228,8 +228,9 @@ if (!schedulerRunner.includes('serviceMetrics.schedulerTaskStarted()') || !sched
 const workerQueue = await Bun.file('src/worker/queue.ts').text();
 for (const fragment of [
   'config.REDIS_NAMESPACE',
-  "redisKey(namespace, 'queue', queueName)",
-  "groupName: redisKey(base, 'workers')",
+  "streamKey: redisKey(namespace, 'queue', queueName, 'stream')",
+  "deadLetterKey: redisKey(namespace, 'queue', queueName, 'dead')",
+  "groupName: redisKey(namespace, 'queue', queueName, 'workers')",
 ]) {
   if (!workerQueue.includes(fragment)) {
     failures.push(`Redis queue namespacing missing required behavior: ${fragment}`);
