@@ -29,8 +29,8 @@ services:
       DB_TLS_MODE: disable
       WORKER_ENABLED: "true"
       REDIS_URL: redis://redis:6379
+      # REDIS_NAMESPACE defaults to SERVICE_NAME:APP_ENV.
       WORKER_QUEUE_NAME: default
-      WORKER_QUEUE_PREFIX: queue
       WORKER_CONCURRENCY: 2
       WORKER_BLOCK_MS: 1000
       WORKER_JOB_TIMEOUT_MS: 30000
