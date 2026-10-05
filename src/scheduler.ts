@@ -1,6 +1,10 @@
 import { config } from '@/config';
 import { closeDbClient } from '@/database/client';
 import { logger } from '@/shared/logger';
+import {
+  startProcessMetricsServer,
+  stopProcessMetricsServer,
+} from '@/shared/observability/metrics-server';
 import { closeRedisClient } from '@/worker/client';
 import { scheduledTasks } from '@/scheduler/registry';
 import { SchedulerRunner } from '@/scheduler/runner';
@@ -11,6 +15,7 @@ if (!config.SCHEDULER_ENABLED) {
 
 const runner = new SchedulerRunner(scheduledTasks);
 runner.start();
+const metricsServer = startProcessMetricsServer('scheduler');
 
 let shuttingDown = false;
 
@@ -22,6 +27,7 @@ async function shutdown(signal: string): Promise<void> {
 
   try {
     await runner.stop();
+    await stopProcessMetricsServer(metricsServer);
     closeRedisClient();
     await closeDbClient();
     logger.info('Scheduler stopped');
