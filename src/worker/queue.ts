@@ -1,5 +1,6 @@
 import type { RedisClient } from 'bun';
 import { config } from '@/config';
+import { redisKey } from '@/shared/redis/key';
 import { parseJobEnvelope, type JobEnvelope } from './job';
 
 export interface RedisStreamMessage {
@@ -27,6 +28,25 @@ export interface RedisStreamQueueOptions {
   streamKey?: string;
   deadLetterKey?: string;
   groupName?: string;
+}
+
+export interface RedisQueueNames {
+  streamKey: string;
+  deadLetterKey: string;
+  groupName: string;
+}
+
+export function buildRedisQueueNames(
+  namespace: string,
+  queueName: string
+): RedisQueueNames {
+  const base = redisKey(namespace, 'queue', queueName);
+
+  return {
+    streamKey: redisKey(base, 'stream'),
+    deadLetterKey: redisKey(base, 'dead'),
+    groupName: redisKey(base, 'workers'),
+  };
 }
 
 const MAX_DLQ_LIST = 100;
@@ -63,10 +83,13 @@ export class RedisStreamQueue {
     private readonly redis: RedisClient,
     options: RedisStreamQueueOptions = {}
   ) {
-    const base = `${config.WORKER_QUEUE_PREFIX}:${config.SERVICE_NAME}:${config.WORKER_QUEUE_NAME}`;
-    this.streamKey = options.streamKey ?? `${base}:stream`;
-    this.deadLetterKey = options.deadLetterKey ?? `${base}:dead`;
-    this.groupName = options.groupName ?? `${config.SERVICE_NAME}:workers`;
+    const defaults = buildRedisQueueNames(
+      config.REDIS_NAMESPACE,
+      config.WORKER_QUEUE_NAME
+    );
+    this.streamKey = options.streamKey ?? defaults.streamKey;
+    this.deadLetterKey = options.deadLetterKey ?? defaults.deadLetterKey;
+    this.groupName = options.groupName ?? defaults.groupName;
   }
 
   async ensureGroup(): Promise<void> {
