@@ -1,13 +1,10 @@
 #!/usr/bin/env bun
 import type { ReservedSQL, TransactionSQL } from 'bun';
-import { readdir } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 import { config } from '../src/config';
 import { closeDbClient, getDbClient } from '../src/database/client';
-
-interface SeederModule {
-  run: (sql: TransactionSQL) => Promise<void>;
-}
+import { seeders } from './seeders/registry';
+import { regenerateSeederRegistry } from './registry-generator';
 
 const SEEDERS_DIR = join(import.meta.dir, 'seeders');
 const SEED_LOCK_KEY = 'bun-slim-database-seeders';
@@ -39,21 +36,12 @@ async function withSeederLock<T>(fn: (connection: ReservedSQL) => Promise<T>): P
   }
 }
 
-async function discoverSeeders(): Promise<string[]> {
-  const files = await readdir(SEEDERS_DIR);
-  return files.filter((file) => file.endsWith('.seeder.ts') && !file.startsWith('_')).sort();
-}
-
-async function loadSeeder(filename: string): Promise<SeederModule> {
-  return await import(join(SEEDERS_DIR, filename));
-}
-
-function selectSeeders(files: string[], name?: string): string[] {
-  if (!name) return files;
+function selectSeeders(name?: string): typeof seeders[number][] {
+  if (!name) return [...seeders];
 
   const normalized = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
-  return files.filter((file) => {
-    const candidate = basename(file, '.seeder.ts').toLowerCase();
+  return seeders.filter((entry) => {
+    const candidate = entry.filename.replace(/\.seeder\.ts$/, '').toLowerCase();
     return candidate === normalized || candidate.endsWith(`_${normalized}`);
   });
 }
@@ -63,24 +51,23 @@ async function runSeeders(name?: string, force = false): Promise<void> {
     throw new Error('Production seeding requires --force');
   }
 
-  const files = selectSeeders(await discoverSeeders(), name);
-  if (name && files.length === 0) {
+  const selected = selectSeeders(name);
+  if (name && selected.length === 0) {
     throw new Error(`Seeder not found: ${name}`);
   }
 
   await withSeederLock(async (connection) => {
-    for (const file of files) {
-      console.log(`🌱 Running seeder: ${file}`);
-      const mod = await loadSeeder(file);
-      await connection.begin(async (tx) => {
-        await mod.run(tx);
+    for (const entry of selected) {
+      console.log(`🌱 Running seeder: ${entry.filename}`);
+      await connection.begin(async (tx: TransactionSQL) => {
+        await entry.run(tx);
       });
-      console.log(`✅ Seeded: ${file}`);
+      console.log(`✅ Seeded: ${entry.filename}`);
     }
   });
 
-  if (files.length === 0) {
-    console.log('✅ No seeders found.');
+  if (selected.length === 0) {
+    console.log('✅ No seeders registered.');
   }
 }
 
@@ -110,7 +97,8 @@ export async function run(sql: TransactionSQL): Promise<void> {
 `;
 
   await Bun.write(filePath, template);
-  console.log(`✅ Created seeder: ${filename}`);
+  await regenerateSeederRegistry();
+  console.log(`✅ Created seeder and refreshed registry: ${filename}`);
 }
 
 const [command = 'run', ...args] = process.argv.slice(2);
