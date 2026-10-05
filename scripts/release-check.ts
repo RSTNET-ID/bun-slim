@@ -61,6 +61,7 @@ const REQUIRED_SCRIPTS = [
   'build',
   'build:server',
   'build:worker',
+  'db:registry:generate',
   'typecheck',
   'lint',
   'format:check',
