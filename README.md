@@ -115,13 +115,14 @@ Core starter tidak membutuhkan Redis.
 
 Bila service membutuhkan background job, tersedia optional worker pack berbasis Bun native Redis client + Redis Streams.
 
-Build menghasilkan empat binary:
+Build menghasilkan lima binary:
 
 ```text
 dist/server
 dist/worker
 dist/scheduler
 dist/job-dead
+dist/doctor
 ```
 
 Jalankan worker lokal:
@@ -180,6 +181,26 @@ bun run seed:create roles
 ```
 
 Seeder bersifat idempotent, transactional, memakai PostgreSQL advisory lock, dan membutuhkan `--force` di production. Migration historis tetap immutable.
+
+## Runtime Doctor
+
+Preflight runtime tersedia untuk memvalidasi environment, Bun version, worker/scheduler registry, database, dan Redis bila dikonfigurasi:
+
+```bash
+bun run doctor
+bun run doctor:offline
+bun run doctor -- --json
+```
+
+Production image membawa standalone binary:
+
+```bash
+./doctor
+./doctor --offline
+./doctor --json
+```
+
+Gunakan `./doctor` sebagai deployment/pre-start check, bukan liveness probe periodik. Lihat `docs/27-RUNTIME-DOCTOR.md`.
 
 ## Dead-Letter Operations
 
