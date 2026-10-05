@@ -219,13 +219,15 @@ Starter menyediakan baseline tambahan tanpa dependency runtime baru:
 - timeout + bounded retry
 - mandatory Idempotency-Key untuk retried POST/PATCH
 - request ID propagation
-- optional Prometheus-compatible `/metrics`
+- optional Prometheus-compatible `/metrics` untuk HTTP dan listener metrics terpisah untuk worker/scheduler
 - low-cardinality HTTP/outbound metrics
 - API security headers
 - Bun request body hard limit
 - explicit server idle timeout
 - bounded graceful shutdown
 - production dependency audit di CI
+
+Worker/scheduler menyajikan metrics pada listener terpisah `METRICS_HOST:METRICS_PORT` (default `0.0.0.0:9464`) dan lifecycle listener mengikuti lifecycle process. `METRICS_TOKEN` wajib saat metrics diaktifkan.
 
 Dokumentasi:
 - `docs/14-OUTBOUND-HTTP-STANDARD.md`
