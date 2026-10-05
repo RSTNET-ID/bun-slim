@@ -42,6 +42,8 @@ Pastikan:
 - outbound request memiliki timeout
 - retried write memiliki idempotency contract
 - metrics tidak menggunakan high-cardinality labels
+- production image membawa standalone `./doctor`
+- final deployment environment lulus `./doctor` sebelum traffic diberikan
 
 ## Data Gate
 
