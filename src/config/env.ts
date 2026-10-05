@@ -56,6 +56,10 @@ export const envSchema = z
     DB_DRIVER: z.literal('postgres').default('postgres'),
 
     DATABASE_URL: z.string().url('DATABASE_URL must be a valid connection URL'),
+    MIGRATION_DATABASE_URL: z
+      .string()
+      .url('MIGRATION_DATABASE_URL must be a valid connection URL')
+      .optional(),
 
     DB_POOL_MAX: z.coerce.number().int().min(1).max(200).default(10),
     DB_IDLE_TIMEOUT_SECONDS: z.coerce.number().int().min(0).default(30),
@@ -120,30 +124,37 @@ export const envSchema = z
         });
       }
 
-      try {
-        const databaseUrl = new URL(env.DATABASE_URL);
-        const weakUsernames = new Set(['user', 'test', 'example', 'postgres']);
-        const weakPasswords = new Set([
-          'password',
-          'changeme',
-          'secret',
-          'test',
-          'example',
-          'postgres',
-        ]);
+      const weakUsernames = new Set(['user', 'test', 'example', 'postgres']);
+      const weakPasswords = new Set([
+        'password',
+        'changeme',
+        'secret',
+        'test',
+        'example',
+        'postgres',
+      ]);
 
-        if (
-          weakUsernames.has(decodeURIComponent(databaseUrl.username).toLowerCase()) &&
-          weakPasswords.has(decodeURIComponent(databaseUrl.password).toLowerCase())
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['DATABASE_URL'],
-            message: 'DATABASE_URL uses placeholder/default credentials in staging/production',
-          });
+      for (const [field, value] of [
+        ['DATABASE_URL', env.DATABASE_URL],
+        ['MIGRATION_DATABASE_URL', env.MIGRATION_DATABASE_URL],
+      ] as const) {
+        if (!value) continue;
+
+        try {
+          const databaseUrl = new URL(value);
+          if (
+            weakUsernames.has(decodeURIComponent(databaseUrl.username).toLowerCase()) &&
+            weakPasswords.has(decodeURIComponent(databaseUrl.password).toLowerCase())
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: [field],
+              message: `${field} uses placeholder/default credentials in staging/production`,
+            });
+          }
+        } catch {
+          // URL validation already reports malformed connection URLs.
         }
-      } catch {
-        // URL validation already reports malformed DATABASE_URL.
       }
 
       if (env.DB_TLS_MODE !== 'verify-full') {
@@ -169,6 +180,17 @@ export const envSchema = z
         path: ['DATABASE_URL'],
         message: `DATABASE_URL protocol "${protocol}" does not match DB_DRIVER="${env.DB_DRIVER}"`,
       });
+    }
+
+    if (env.MIGRATION_DATABASE_URL) {
+      const migrationProtocol = new URL(env.MIGRATION_DATABASE_URL).protocol.replace(':', '');
+      if (!acceptedProtocols.includes(migrationProtocol)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['MIGRATION_DATABASE_URL'],
+          message: `MIGRATION_DATABASE_URL protocol "${migrationProtocol}" does not match DB_DRIVER="${env.DB_DRIVER}"`,
+        });
+      }
     }
   });
 
