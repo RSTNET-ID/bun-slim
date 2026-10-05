@@ -25,6 +25,8 @@ Format mengikuti semantic versioning.
 - dedicated Bun.cron scheduler process, registry, runner, tests, and Compose overlay
 
 ### Changed
+- example module repository is now Bun.SQL-first with typed results, native SQL fragments/object helpers, transaction executor injection, and test-only persistence fakes
+- coding agent/rules now forbid internal query builders, ORM wrappers, and generic base repositories unless a concrete production need justifies them
 - worker stream, DLQ, and consumer group names now use `<REDIS_NAMESPACE>:queue:<WORKER_QUEUE_NAME>:...`; legacy `WORKER_QUEUE_PREFIX` was removed
 - staging/production now require an explicit non-placeholder `SERVICE_NAME` so default Redis namespaces cannot collide across starter deployments
 - Compose now separates runtime, database, and queue networks; HTTP container health uses database-aware readiness
