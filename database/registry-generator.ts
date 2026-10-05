@@ -72,3 +72,9 @@ ${entries}
 
   await Bun.write(join(directory, 'registry.ts'), content);
 }
+
+if (import.meta.main) {
+  await regenerateMigrationRegistry();
+  await regenerateSeederRegistry();
+  console.log('✅ Database registries refreshed.');
+}
