@@ -79,7 +79,7 @@ async function withMigrationLock<T>(fn: (connection: ReservedSQL) => Promise<T>)
     lockAcquired = Number(rows[0]?.acquired) === 1;
 
     if (!lockAcquired) {
-      throw new Error(`Could not acquire MySQL migration lock: ${MIGRATION_LOCK_KEY}`);
+      throw new Error(`Could not acquire MySQL migration lock within 30s: ${MIGRATION_LOCK_KEY}`);
     }
 
     return await fn(connection);
