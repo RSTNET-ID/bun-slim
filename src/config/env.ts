@@ -41,6 +41,7 @@ export const envSchema = z
     METRICS_TOKEN: z.string().min(24).optional(),
     METRICS_HOST: z.string().min(1).default('0.0.0.0'),
     METRICS_PORT: z.coerce.number().int().min(1).max(65535).default(9464),
+    PROCESS_HEALTH_PORT: z.coerce.number().int().min(1).max(65535).default(9465),
     EXAMPLE_ROUTES_ENABLED: booleanFromEnv.default(false),
 
     OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().min(100).default(5000),
@@ -82,6 +83,14 @@ export const envSchema = z
       protocol = new URL(env.DATABASE_URL).protocol.replace(':', '');
     } catch {
       return;
+    }
+
+    if (env.METRICS_ENABLED && env.METRICS_PORT === env.PROCESS_HEALTH_PORT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['PROCESS_HEALTH_PORT'],
+        message: 'PROCESS_HEALTH_PORT must differ from METRICS_PORT when metrics are enabled',
+      });
     }
 
     if (env.METRICS_ENABLED && !env.METRICS_TOKEN) {
