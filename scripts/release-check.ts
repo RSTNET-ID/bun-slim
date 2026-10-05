@@ -39,6 +39,7 @@ const REQUIRED_FILES = [
   'docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md',
   'src/scheduler.ts',
   'src/scheduler/runner.ts',
+  'src/shared/observability/metrics-server.ts',
   'src/scheduler/registry.ts',
   'docker-compose.scheduler.yml',
   'database/seed.ts',
@@ -162,6 +163,19 @@ for (const path of mysqlRuntimeFiles) {
 const schedulerRunner = await Bun.file('src/scheduler/runner.ts').text();
 if (!schedulerRunner.includes('Bun.cron(') || !schedulerRunner.includes('config.SCHEDULER_TIMEZONE') || !schedulerRunner.includes('tz: timezone')) {
   failures.push('scheduler runner must use Bun.cron with configurable explicit timezone');
+}
+if (!schedulerRunner.includes('serviceMetrics.schedulerTaskStarted()') || !schedulerRunner.includes('serviceMetrics.schedulerTaskFinished(')) {
+  failures.push('scheduler runner must publish scheduler execution metrics');
+}
+
+const workerEntrypoint = await Bun.file('src/worker.ts').text();
+if (!workerEntrypoint.includes("startProcessMetricsServer('worker')") || !workerEntrypoint.includes('stopProcessMetricsServer(metricsServer)')) {
+  failures.push('worker entrypoint must start and stop the standalone metrics server');
+}
+
+const schedulerEntrypoint = await Bun.file('src/scheduler.ts').text();
+if (!schedulerEntrypoint.includes("startProcessMetricsServer('scheduler')") || !schedulerEntrypoint.includes('stopProcessMetricsServer(metricsServer)')) {
+  failures.push('scheduler entrypoint must start and stop the standalone metrics server');
 }
 
 const forbiddenEnvFragments = [
