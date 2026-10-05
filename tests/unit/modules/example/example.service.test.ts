@@ -36,7 +36,10 @@ describe('ExampleService — unit', () => {
     });
 
     it('should create item with category_id', async () => {
-      const item = await service.create({ name: 'With Category', category_id: TEST_EXAMPLE_CATEGORY_IDS.GENERAL });
+      const item = await service.create({
+        name: 'With Category',
+        category_id: TEST_EXAMPLE_CATEGORY_IDS.GENERAL,
+      });
       expect(item.category_id).toBe(TEST_EXAMPLE_CATEGORY_IDS.GENERAL);
     });
   });
@@ -66,7 +69,10 @@ describe('ExampleService — unit', () => {
     });
 
     it('should return item with resolved category when category_id matches in-memory store', async () => {
-      const created = await service.create({ name: 'Has Category', category_id: TEST_EXAMPLE_CATEGORY_IDS.GENERAL });
+      const created = await service.create({
+        name: 'Has Category',
+        category_id: TEST_EXAMPLE_CATEGORY_IDS.GENERAL,
+      });
       const result = await service.getByIdWithLookup(created.id);
       expect(result.category).not.toBeNull();
       expect(result.category?.code).toBe('GEN');
