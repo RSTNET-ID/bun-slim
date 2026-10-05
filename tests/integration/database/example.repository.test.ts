@@ -102,7 +102,7 @@ if (!runMysqlIntegration) {
       if (index !== -1) createdIds.splice(index, 1);
     });
 
-    it('should resolve the same seeded category IDs as the in-memory repository', async () => {
+    it('should resolve the seeded category IDs through the JOIN query', async () => {
       const created = await repository.create({
         name: `lookup-${crypto.randomUUID()}`,
         category_id: EXAMPLE_CATEGORY_IDS.GENERAL,
