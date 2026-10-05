@@ -31,6 +31,12 @@ Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
 
 ## Database
 
+- Bun.SQL adalah primary database access layer. Jangan membuat ORM, custom query builder, atau generic `BaseRepository<T>` internal sebagai layer tambahan.
+- Tulis SQL eksplisit di repository dengan parameterized tagged templates.
+- Gunakan kemampuan native Bun.SQL untuk conditional fragments (`sql\`...\``), object insert/update (`${sql(object)}`), value lists, typed result generics, pooling, dan transaction executor sebelum menambah abstraction baru.
+- Production repository harus DB-only. In-memory/fake repository hanya berada di test code, bukan sebagai fallback di `src/`.
+- Repository boleh menerima `SQL | TransactionSQL`/transaction context agar query yang sama dapat ikut transaction tanpa membuat query API baru.
+- Repository contract kecil boleh dibuat untuk kebutuhan testability/inversion yang konkret; jangan mengubahnya menjadi repository framework generik.
 - `DB_DRIVER=postgres` adalah satu-satunya driver yang valid pada branch `main`.
 - Staging/production wajib memakai `DB_TLS_MODE=verify-full`.
 - Private/custom CA dapat diberikan melalui `DB_TLS_CA_FILE`.
