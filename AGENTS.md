@@ -68,6 +68,7 @@ Dilarang membuat dependency balik dari repository/domain ke Hono/HTTP.
 - Dispatcher dan worker tetap at-least-once; consumer harus idempotent.
 - Lihat `docs/26-OUTBOX-IDEMPOTENCY-STANDARD.md`.
 - Gunakan `docs/27-RUNTIME-DOCTOR.md` untuk deployment/pre-start validation.
+- Gunakan `docs/28-FILE-BACKED-SECRETS.md` untuk mounted secret dan `*_FILE` runtime configuration.
 
 ## Scheduler
 
