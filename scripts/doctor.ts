@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { RedisClient } from 'bun';
-import { envSchema } from '@/config/env';
+import { envSchema, resolveFileBackedSecrets } from '@/config/env';
 
 export type DoctorStatus = 'pass' | 'fail' | 'skip';
 
@@ -94,7 +94,25 @@ function envIssueNames(issues: Array<{ path: PropertyKey[] }>): string[] {
 async function runDoctor(options: DoctorOptions): Promise<number> {
   const checks: DoctorCheck[] = [];
 
-  const parsed = envSchema.safeParse(process.env);
+  let parsed: ReturnType<typeof envSchema.safeParse>;
+
+  try {
+    parsed = envSchema.safeParse(resolveFileBackedSecrets(process.env));
+  } catch {
+    checks.push({
+      name: 'environment',
+      status: 'fail',
+      detail: 'file-backed secret resolution failed',
+    });
+
+    if (options.json) {
+      console.log(JSON.stringify({ ok: false, offline: options.offline, checks }, null, 2));
+    } else {
+      printHuman(checks, options.offline);
+    }
+    return 1;
+  }
+
   if (!parsed.success) {
     const fields = envIssueNames(parsed.error.issues);
     checks.push({
@@ -117,7 +135,7 @@ async function runDoctor(options: DoctorOptions): Promise<number> {
   checks.push({
     name: 'environment',
     status: 'pass',
-    detail: `APP_ENV=${config.APP_ENV}; DB_DRIVER=${config.DB_DRIVER}; TZ=${config.TZ}`,
+    detail: `APP_ENV=${config.APP_ENV}; DB_DRIVER=${config.DB_DRIVER}; TZ=${config.TZ}; REDIS_NAMESPACE=${config.REDIS_NAMESPACE}`,
   });
 
   checks.push({
