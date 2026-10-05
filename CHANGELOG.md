@@ -7,6 +7,7 @@ Format mengikuti semantic versioning.
 ## Unreleased
 
 ### Added
+- deployment runtime doctor with offline/JSON modes, DB/Redis preflight, and registry validation
 - wire standalone worker/scheduler metrics listeners and scheduler execution metrics
 - DLQ operational CLI for bounded list/show, atomic replay, and retention purge
 - transactional outbox reliability standard for DB-write + Redis job atomicity
