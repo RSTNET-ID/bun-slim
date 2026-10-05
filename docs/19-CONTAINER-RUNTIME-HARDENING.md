@@ -183,6 +183,31 @@ agar mutable base tag diperiksa ulang pada build.
 
 Repository menyediakan `renovate.json` dengan preset `docker:pinDigests`. Setelah Renovate diaktifkan pada repository, Docker base/service image harus dipin ke digest dan digest update masuk sebagai PR reviewable, bukan dibekukan manual selamanya.
 
+## Digest Pinning and Automated Updates
+
+Repository memakai `renovate.json` untuk `main` dan `mysql-v8`.
+
+Policy:
+- Docker references dipin ke digest melalui `docker:pinDigests`
+- GitHub Actions dipin ke immutable commit melalui `helpers:pinGitHubActionDigests`
+- Alpine/PostgreSQL/MySQL/Redis mempertahankan tag line yang dipilih dan menerima rebuild/security refresh melalui digest PR
+- Bun tetap pada minor line yang dipilih; patch release boleh diusulkan
+- digest/action update tidak auto-merge dan harus melewati review + CI
+
+Target bentuk setelah initial Renovate pin PR:
+
+```text
+alpine:3.22@sha256:<digest>
+postgres:16-alpine@sha256:<digest>
+mysql:8.0@sha256:<digest>
+redis:7.2-alpine@sha256:<digest>
+oven/bun:1.4.x-alpine@sha256:<digest>
+```
+
+`renovate.json` sendiri tidak menjalankan bot. Repository harus mengaktifkan Renovate GitHub App atau Renovate self-hosted. Sampai initial pin PR diterapkan, CI tetap memakai tag dan `docker build --pull`; setelah pinning, build menjadi reproducible terhadap digest yang direview.
+
+Jangan menyalin digest manual dari dokumentasi atau hasil pencarian lama. Digest harus di-resolve langsung oleh registry-aware updater agar tidak membekukan artefak stale.
+
 ## CI Validation
 
 Container validation baseline:
