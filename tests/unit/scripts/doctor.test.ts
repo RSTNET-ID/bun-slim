@@ -19,10 +19,12 @@ describe('runtime doctor helpers', () => {
     expect(() => parseDoctorArgs(['--surprise'])).toThrow('Unknown option');
   });
 
-  it('accepts Bun 1.4 and later', () => {
-    expect(isSupportedBunVersion('1.4.0')).toBe(true);
-    expect(isSupportedBunVersion('1.5.2')).toBe(true);
+  it('accepts Bun 1.4.2 and later', () => {
+    expect(isSupportedBunVersion('1.4.2')).toBe(true);
+    expect(isSupportedBunVersion('1.4.9')).toBe(true);
+    expect(isSupportedBunVersion('1.5.0')).toBe(true);
     expect(isSupportedBunVersion('2.0.0')).toBe(true);
+    expect(isSupportedBunVersion('1.4.1')).toBe(false);
     expect(isSupportedBunVersion('1.3.9')).toBe(false);
   });
 
