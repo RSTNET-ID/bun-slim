@@ -4,9 +4,8 @@ import { logger } from '@/shared/logger';
 
 let sqlClient: SQL | null = null;
 
-export function getDbClient(): SQL {
-  if (!sqlClient) {
-    sqlClient = new SQL({
+export function createDbClient(): SQL {
+  return new SQL({
       adapter: config.DB_DRIVER,
       url: config.DATABASE_URL,
       max: config.DB_POOL_MAX,
@@ -14,11 +13,16 @@ export function getDbClient(): SQL {
       connectionTimeout: config.DB_CONNECTION_TIMEOUT_SECONDS,
       maxLifetime: config.DB_MAX_LIFETIME_SECONDS,
       prepare: config.DB_PREPARE,
-      tls: config.DB_TLS_CA_FILE
-        ? { ca: Bun.file(config.DB_TLS_CA_FILE), rejectUnauthorized: true }
-        : config.DB_TLS_MODE,
-      allowPublicKeyRetrieval: config.DB_ALLOW_PUBLIC_KEY_RETRIEVAL,
-    });
+    tls: config.DB_TLS_CA_FILE
+      ? { ca: Bun.file(config.DB_TLS_CA_FILE), rejectUnauthorized: true }
+      : config.DB_TLS_MODE,
+    allowPublicKeyRetrieval: config.DB_ALLOW_PUBLIC_KEY_RETRIEVAL,
+  });
+}
+
+export function getDbClient(): SQL {
+  if (!sqlClient) {
+    sqlClient = createDbClient();
   }
 
   return sqlClient;
