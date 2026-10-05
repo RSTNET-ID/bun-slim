@@ -45,6 +45,10 @@ const REQUIRED_FILES = [
   'src/scheduler/runner.ts',
   'src/shared/observability/metrics-server.ts',
   'src/shared/lifecycle/process-health.ts',
+  'src/shared/redis/key.ts',
+  'tests/unit/shared/redis/key.test.ts',
+  'tests/unit/worker/queue-namespace.test.ts',
+  'tests/unit/config/redis-namespace.test.ts',
   'tests/unit/shared/lifecycle/process-health.test.ts',
   'tests/unit/config/env-file-secrets.test.ts',
   'src/scheduler/registry.ts',
@@ -136,6 +140,14 @@ for (const fragment of [
   }
 }
 
+if (
+  !envConfigSource.includes('resolveRedisNamespace') ||
+  !envConfigSource.includes('SERVICE_NAME must be explicitly set in staging/production') ||
+  envConfigSource.includes('WORKER_QUEUE_PREFIX')
+) {
+  failures.push('Redis namespace config must derive from SERVICE_NAME:APP_ENV and must not use legacy WORKER_QUEUE_PREFIX');
+}
+
 const dockerignore = await Bun.file('.dockerignore').text();
 for (const pattern of ['.env', '.env.*', 'secrets/', '*.pem', '*.key']) {
   if (!dockerignore.includes(pattern)) {
@@ -156,6 +168,7 @@ for (const key of [
   'PROCESS_HEALTH_PORT=',
   'SCHEDULER_ENABLED=',
   'SCHEDULER_TIMEZONE=',
+  'REDIS_NAMESPACE=',
   'DB_TLS_MODE=',
 ]) {
   if (!envExample.includes(key)) {
@@ -182,6 +195,20 @@ if (!schedulerRunner.includes('Bun.cron(') || !schedulerRunner.includes('config.
 }
 if (!schedulerRunner.includes('serviceMetrics.schedulerTaskStarted()') || !schedulerRunner.includes('serviceMetrics.schedulerTaskFinished(')) {
   failures.push('scheduler runner must publish scheduler execution metrics');
+}
+
+const workerQueue = await Bun.file('src/worker/queue.ts').text();
+for (const fragment of [
+  'config.REDIS_NAMESPACE',
+  "redisKey(namespace, 'queue', queueName)",
+  "groupName: redisKey(base, 'workers')",
+]) {
+  if (!workerQueue.includes(fragment)) {
+    failures.push(`Redis queue namespacing missing required behavior: ${fragment}`);
+  }
+}
+if (workerQueue.includes('WORKER_QUEUE_PREFIX')) {
+  failures.push('Redis queue must not use legacy WORKER_QUEUE_PREFIX');
 }
 
 const workerEntrypoint = await Bun.file('src/worker.ts').text();
@@ -296,6 +323,9 @@ if (!baseCompose.includes('profiles: ["seed"]') || !baseCompose.includes('comman
 }
 
 const workerCompose = await Bun.file('docker-compose.worker.yml').text();
+if (workerCompose.includes('WORKER_QUEUE_PREFIX')) {
+  failures.push('worker compose must not expose legacy WORKER_QUEUE_PREFIX');
+}
 if (
   !workerCompose.includes('stop_grace_period: 40s') ||
   !workerCompose.includes('http://127.0.0.1:9465/health/ready') ||
