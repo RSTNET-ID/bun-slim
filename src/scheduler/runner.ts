@@ -1,5 +1,6 @@
 import { config } from '@/config';
 import { logger } from '@/shared/logger';
+import { serviceMetrics } from '@/shared/observability/metrics';
 import type { ScheduledTask } from './task';
 
 const SCHEDULE_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
@@ -102,6 +103,7 @@ export class SchedulerRunner {
     const controller = new AbortController();
     const scheduledAt = new Date();
     const startedAt = performance.now();
+    serviceMetrics.schedulerTaskStarted();
     const run = this.runTask(task, timezone, controller, scheduledAt, startedAt);
 
     this.activeControllers.add(controller);
@@ -122,6 +124,8 @@ export class SchedulerRunner {
     scheduledAt: Date,
     startedAt: number
   ): Promise<void> {
+    let result: 'success' | 'error' = 'success';
+
     try {
       await task.run({
         scheduledAt,
@@ -137,6 +141,7 @@ export class SchedulerRunner {
         duration_ms: Math.round(performance.now() - startedAt),
       });
     } catch (error: unknown) {
+      result = 'error';
       logger.error('Scheduler task failed', {
         task: task.name,
         cron: task.cron,
@@ -145,6 +150,8 @@ export class SchedulerRunner {
         duration_ms: Math.round(performance.now() - startedAt),
         error: error instanceof Error ? error.message : String(error),
       });
+    } finally {
+      serviceMetrics.schedulerTaskFinished(task.name, result, performance.now() - startedAt);
     }
   }
 }
