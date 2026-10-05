@@ -1,22 +1,18 @@
 # syntax=docker/dockerfile:1.7
 ARG BUN_VERSION=1.4.0
-ARG TZ=UTC
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STAGE 0: BASE — Alpine Bun Base + Timezone & Utilities
+# STAGE 0: BASE — Bun build environment, pinned to UTC
 # ─────────────────────────────────────────────────────────────────────────────
 FROM oven/bun:${BUN_VERSION}-alpine AS base
 
-ARG TZ
-ENV TZ=${TZ}
+ENV TZ=UTC
 
 RUN apk add --no-cache \
     tzdata \
     ca-certificates \
-    curl \
-    dumb-init \
-  && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
-  && echo "${TZ}" > /etc/timezone
+  && cp /usr/share/zoneinfo/UTC /etc/localtime \
+  && echo "UTC" > /etc/timezone
 
 WORKDIR /app
 
@@ -30,7 +26,7 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
     HUSKY=0 bun install --frozen-lockfile
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STAGE 2: BUILDER — Typecheck & Compile Standalone Bun Binary
+# STAGE 2: BUILDER — Typecheck & Compile Standalone Bun Binaries
 # ─────────────────────────────────────────────────────────────────────────────
 FROM deps AS builder
 
@@ -43,20 +39,21 @@ RUN bun run typecheck
 RUN bun run build
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STAGE 3: PRODUCTION RUNTIME — Ultra-Slim Binary Container
+# STAGE 3: PRODUCTION RUNTIME — Minimal non-root runtime
 # ─────────────────────────────────────────────────────────────────────────────
 FROM alpine:3.22 AS production
 
-ARG TZ
-ENV TZ=${TZ}
+ENV TZ=UTC \
+    NODE_ENV=production
+
 RUN apk add --no-cache \
     tzdata \
     ca-certificates \
     curl \
     dumb-init \
     libstdc++ \
-  && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
-  && echo "${TZ}" > /etc/timezone
+  && cp /usr/share/zoneinfo/UTC /etc/localtime \
+  && echo "UTC" > /etc/timezone
 
 ARG IMAGE_VERSION=1.0.0
 ARG GIT_SHA=unknown
@@ -70,13 +67,10 @@ LABEL org.opencontainers.image.title="Bun Hono Microservice Starter" \
       org.opencontainers.image.created="${BUILD_DATE}"
 
 WORKDIR /app
-ENV NODE_ENV=production
 
-# Security: Ensure dedicated non-root user/group ownership
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
   && chown -R appuser:appgroup /app
 
-# Copy compiled standalone executable and database assets from builder
 COPY --from=builder --chown=appuser:appgroup /app/dist/server ./server
 COPY --from=builder --chown=appuser:appgroup /app/dist/worker ./worker
 COPY --from=builder --chown=appuser:appgroup /app/dist/scheduler ./scheduler
@@ -88,8 +82,7 @@ USER appuser
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -fsS http://127.0.0.1:3000/health/live || exit 1
-
+# Deliberately no image-level HEALTHCHECK. This image serves multiple process
+# roles; each deployment must define the health probe appropriate to its command.
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["./server"]
