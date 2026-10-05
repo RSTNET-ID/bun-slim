@@ -76,6 +76,32 @@ Untuk validasi image/config tanpa dependency network gunakan `./doctor --offline
 
 Doctor adalah pre-start validation, bukan liveness probe periodik.
 
+## Container Health and Stop Budget
+
+Shared production image tidak memiliki image-level healthcheck karena binary yang sama dipakai untuk HTTP, worker, dan scheduler.
+
+Probe ditentukan per role:
+
+```text
+server    -> http://127.0.0.1:3000/health/live
+worker    -> http://127.0.0.1:9465/health/ready
+scheduler -> http://127.0.0.1:9465/health/ready
+```
+
+Worker/scheduler health listener hanya bind ke loopback container dan tidak dipublish ke host.
+
+Baseline stop grace Compose:
+
+```text
+app        25s
+worker     40s
+scheduler  25s
+postgres   30s
+redis      20s
+```
+
+Grace period orchestrator harus lebih besar daripada internal drain/job timeout. Jangan membiarkan Docker mengirim SIGKILL lebih cepat daripada `SHUTDOWN_TIMEOUT_MS` atau `WORKER_JOB_TIMEOUT_MS`.
+
 ## Shutdown
 
 HTTP:
