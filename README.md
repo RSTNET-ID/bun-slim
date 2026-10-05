@@ -4,7 +4,7 @@ Branch `mysql-v8` adalah varian Bun Slim yang menggunakan **MySQL 8** sebagai da
 
 ## Baseline
 
-- **Runtime**: Bun 1.4+
+- **Runtime**: Bun 1.4.2+ (1.4.x production baseline)
 - **HTTP Framework**: Hono
 - **Language**: TypeScript
 - **Database**: Bun.SQL + MySQL 8
