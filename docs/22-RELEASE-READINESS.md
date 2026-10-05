@@ -46,6 +46,10 @@ Pastikan:
 - worker/scheduler memakai loopback process readiness endpoint, bukan PID-only healthcheck
 - container stop grace melebihi application shutdown/job timeout budget
 - compiled production binaries tidak auto-load `.env` atau `bunfig.toml`
+- migration/seeder registries sinkron dengan source files
+- runtime image membawa `./migrate` dan `./seed` tanpa TypeScript `database/` source
+- app/worker/scheduler gated oleh successful one-shot migration
+- final image lulus Trivy HIGH/CRITICAL scan dan menghasilkan SPDX SBOM
 - production image membawa standalone `./doctor`
 - final deployment environment lulus `./doctor` sebelum traffic diberikan
 
