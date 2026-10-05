@@ -1,5 +1,6 @@
 import { config } from '@/config';
 import { logger } from '@/shared/logger';
+import { serviceMetrics } from '@/shared/observability/metrics';
 import { parseJobEnvelope, type JobEnvelope, type JobHandlerRegistry } from './job';
 import type { RedisStreamMessage, RedisStreamQueue } from './queue';
 
@@ -7,6 +8,13 @@ export interface WorkerRunnerOptions {
   workerId: string;
   handlers: JobHandlerRegistry;
 }
+
+type WorkerMetricResult =
+  | 'success'
+  | 'retry'
+  | 'dead_letter'
+  | 'abandoned'
+  | 'internal_error';
 
 export class WorkerRunner {
   private stopping = false;
@@ -78,6 +86,10 @@ export class WorkerRunner {
           config.WORKER_CONCURRENCY
         );
 
+        if (messages.length > 0) {
+          serviceMetrics.recordWorkerReclaimed(messages.length);
+        }
+
         for (const message of messages) {
           if (this.stopping) break;
           logger.warn('Reclaimed stale job', {
@@ -124,6 +136,7 @@ export class WorkerRunner {
         stream_id: message.id,
         error: reason,
       });
+      serviceMetrics.recordWorkerRejected('invalid_payload');
       await this.queue.deadLetter(message, reason);
       return;
     }
@@ -135,17 +148,22 @@ export class WorkerRunner {
         job_id: job.job_id,
         job_type: job.job_type,
       });
+      serviceMetrics.recordWorkerRejected('unknown_type');
       await this.queue.deadLetter(message, reason);
       return;
     }
 
     this.runningJobs += 1;
+    serviceMetrics.workerJobStarted();
+
     const startedAt = performance.now();
+    let metricResult: WorkerMetricResult | undefined;
 
     try {
       await runWithTimeout((signal) => handler(job, { signal }), config.WORKER_JOB_TIMEOUT_MS);
 
       await this.queue.ack(message.id);
+      metricResult = 'success';
 
       logger.info('Worker job completed', {
         job_id: job.job_id,
@@ -159,6 +177,7 @@ export class WorkerRunner {
 
       if (job.attempt >= config.WORKER_MAX_ATTEMPTS) {
         await this.queue.deadLetter(message, errorMessage);
+        metricResult = 'dead_letter';
 
         logger.error('Worker job moved to dead letter', {
           job_id: job.job_id,
@@ -183,6 +202,7 @@ export class WorkerRunner {
 
       const shouldRetry = await sleepUntilRetry(delayMs, () => this.stopping);
       if (!shouldRetry) {
+        metricResult = 'abandoned';
         // Leave the message pending. Another consumer can reclaim it later.
         return;
       }
@@ -191,7 +211,14 @@ export class WorkerRunner {
         ...job,
         attempt: job.attempt + 1,
       });
+      metricResult = 'retry';
     } finally {
+      serviceMetrics.recordWorkerOutcome(
+        job.job_type,
+        metricResult ?? 'internal_error',
+        performance.now() - startedAt
+      );
+      serviceMetrics.workerJobSettled();
       this.runningJobs -= 1;
     }
   }
