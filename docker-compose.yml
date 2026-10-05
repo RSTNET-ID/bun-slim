@@ -5,6 +5,9 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    stop_grace_period: 25s
+    mem_limit: 512m
+    cpus: 1.0
     ports:
       - "127.0.0.1:3000:3000"
     environment:
@@ -20,6 +23,7 @@ services:
       SHUTDOWN_DRAIN_DELAY_MS: 1000
       SECURITY_HEADERS_ENABLED: "true"
       METRICS_ENABLED: "false"
+      PROCESS_HEALTH_PORT: 9465
       EXAMPLE_ROUTES_ENABLED: "true"
       OUTBOUND_HTTP_TIMEOUT_MS: 5000
       OUTBOUND_HTTP_MAX_RETRIES: 2
@@ -43,10 +47,22 @@ services:
     tmpfs:
       - /tmp:size=16m,noexec,nosuid,nodev
     pids_limit: 256
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health/live"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    stop_grace_period: 30s
     command: ["postgres", "-c", "timezone=UTC"]
     environment:
       TZ: UTC
@@ -60,6 +76,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:
