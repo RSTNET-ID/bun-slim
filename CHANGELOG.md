@@ -23,6 +23,7 @@ Format mengikuti semantic versioning.
 - UTC runtime baseline for application, worker, PostgreSQL development service, and scheduler
 
 ### Changed
+- Bun runtime, Docker build image, CI toolchain, and runtime doctor baseline upgraded from 1.4.0 to 1.4.2
 - example module repository is now Bun.SQL-first with typed results, native SQL fragments/object helpers, transaction executor injection, and test-only persistence fakes
 - coding agent/rules now forbid internal query builders, ORM wrappers, and generic base repositories unless a concrete production need justifies them
 - worker stream, DLQ, and consumer group names now use `<REDIS_NAMESPACE>:queue:<WORKER_QUEUE_NAME>:...`; legacy `WORKER_QUEUE_PREFIX` was removed
