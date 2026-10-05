@@ -4,7 +4,7 @@ Starter microservice ringan menggunakan Bun native + Hono.
 
 ## Baseline
 
-- **Runtime**: Bun 1.4+
+- **Runtime**: Bun 1.4.2+ (1.4.x production baseline)
 - **HTTP Framework**: Hono
 - **Language**: TypeScript
 - **Database**: Bun.SQL, PostgreSQL default
