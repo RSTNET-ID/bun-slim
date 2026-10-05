@@ -250,6 +250,21 @@ Jangan menaikkan concurrency tanpa mempertimbangkan:
 - memory
 - idempotency/concurrency rules
 
+## Process Health
+
+Worker membuka loopback-only health listener:
+
+```text
+GET http://127.0.0.1:9465/health/live
+GET http://127.0.0.1:9465/health/ready
+```
+
+Port default dikontrol oleh `PROCESS_HEALTH_PORT=9465`.
+
+Readiness baru menjadi 200 setelah Redis consumer group selesai diinisialisasi dan Redis client masih connected. Saat SIGTERM/SIGINT diterima, worker segera berubah menjadi not-ready sebelum berhenti mengambil pekerjaan baru.
+
+Compose menggunakan `/health/ready`, bukan `kill -0 1`, sehingga status health mewakili worker runtime yang sudah diinisialisasi.
+
 ## Graceful Shutdown
 
 Saat SIGTERM/SIGINT:
