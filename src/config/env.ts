@@ -26,8 +26,8 @@ export function resolveFileBackedSecrets(env: RawEnv): RawEnv {
     let value: string;
     try {
       value = readFileSync(filePath, 'utf8').trim();
-    } catch (error: unknown) {
-      throw new Error(`Failed to read secret file for ${valueKey}`, { cause: error });
+    } catch {
+      throw new Error(`Failed to read secret file for ${valueKey}`);
     }
 
     if (!value) {
