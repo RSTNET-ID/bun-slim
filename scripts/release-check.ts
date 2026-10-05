@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 
 const REQUIRED_FILES = [
   'AGENTS.md',
@@ -10,6 +10,7 @@ const REQUIRED_FILES = [
   '.gitignore',
   'Dockerfile',
   'docker-compose.yml',
+  'docker-compose.worker.yml',
   'docker-compose.scheduler.yml',
   'package.json',
   'docs/00-PROJECT.md',
@@ -43,7 +44,11 @@ const REQUIRED_FILES = [
   'src/shared/lifecycle/process-health.ts',
   'tests/unit/shared/lifecycle/process-health.test.ts',
   'src/scheduler/registry.ts',
+  'database/migrate.ts',
   'database/seed.ts',
+  'database/registry-generator.ts',
+  'database/migrations/registry.ts',
+  'database/seeders/registry.ts',
   'database/seeders/20240101000000_example_categories.seeder.ts',
   'scripts/job-dead.ts',
   'scripts/doctor.ts',
@@ -74,6 +79,8 @@ const REQUIRED_SCRIPTS = [
   'doctor',
   'doctor:offline',
   'build:doctor',
+  'build:migrate',
+  'build:seed',
 ] as const;
 
 const failures: string[] = [];
@@ -180,6 +187,15 @@ if (!dockerfile.includes('/app/dist/job-dead ./job-dead')) {
 if (!dockerfile.includes('/app/dist/doctor ./doctor')) {
   failures.push('runtime image must include compiled doctor binary');
 }
+if (!dockerfile.includes('/app/dist/migrate ./migrate')) {
+  failures.push('runtime image must include compiled migration binary');
+}
+if (!dockerfile.includes('/app/dist/seed ./seed')) {
+  failures.push('runtime image must include compiled seeder binary');
+}
+if (dockerfile.includes('/app/database/')) {
+  failures.push('runtime image must not copy database TypeScript source');
+}
 if (/^\s*HEALTHCHECK\b/m.test(dockerfile)) {
   failures.push('shared runtime image must not define a role-specific HEALTHCHECK');
 }
@@ -193,6 +209,8 @@ for (const script of [
   'build:scheduler',
   'build:job-dead',
   'build:doctor',
+  'build:migrate',
+  'build:seed',
 ]) {
   const command = packageJson.scripts?.[script] ?? '';
   if (
@@ -224,12 +242,23 @@ if (!baseCompose.includes('http://127.0.0.1:3000/health/live')) {
 if (!baseCompose.includes('max-size: "10m"') || !baseCompose.includes('mem_limit:')) {
   failures.push('base compose must bound logs and application memory');
 }
+if (
+  !baseCompose.includes('migrate:') ||
+  !baseCompose.includes('command: ["./migrate", "up"]') ||
+  !baseCompose.includes('condition: service_completed_successfully')
+) {
+  failures.push('base compose must gate application startup on successful one-shot migrations');
+}
+if (!baseCompose.includes('profiles: ["seed"]') || !baseCompose.includes('command: ["./seed", "run"]')) {
+  failures.push('base compose must expose seeding as an explicit profile, not automatic startup work');
+}
 
 const workerCompose = await Bun.file('docker-compose.worker.yml').text();
 if (
   !workerCompose.includes('stop_grace_period: 40s') ||
   !workerCompose.includes('http://127.0.0.1:9465/health/ready') ||
-  workerCompose.includes('kill -0 1')
+  workerCompose.includes('kill -0 1') ||
+  !workerCompose.includes('condition: service_completed_successfully')
 ) {
   failures.push('worker compose must use process readiness and a sufficient stop grace period');
 }
@@ -238,9 +267,42 @@ const schedulerCompose = await Bun.file('docker-compose.scheduler.yml').text();
 if (
   !schedulerCompose.includes('stop_grace_period: 25s') ||
   !schedulerCompose.includes('http://127.0.0.1:9465/health/ready') ||
-  schedulerCompose.includes('kill -0 1')
+  schedulerCompose.includes('kill -0 1') ||
+  !schedulerCompose.includes('condition: service_completed_successfully')
 ) {
   failures.push('scheduler compose must use process readiness and a sufficient stop grace period');
+}
+
+const migrationRunner = await Bun.file('database/migrate.ts').text();
+if (!migrationRunner.includes("from './migrations/registry'")) {
+  failures.push('migration runner must use the static bundled migration registry');
+}
+
+const migrationRegistry = await Bun.file('database/migrations/registry.ts').text();
+const migrationFiles = readdirSync('database/migrations')
+  .filter((file) => file.endsWith('.ts') && file !== 'registry.ts' && !file.startsWith('_'))
+  .sort();
+const registeredMigrations = [...migrationRegistry.matchAll(/version: '([^']+)'/g)]
+  .map((match) => match[1]!)
+  .sort();
+if (JSON.stringify(migrationFiles) !== JSON.stringify(registeredMigrations)) {
+  failures.push('migration registry is out of sync; use migrate create or refresh the registry');
+}
+
+const seederRunner = await Bun.file('database/seed.ts').text();
+if (!seederRunner.includes("from './seeders/registry'")) {
+  failures.push('seeder runner must use the static bundled seeder registry');
+}
+
+const seederRegistry = await Bun.file('database/seeders/registry.ts').text();
+const seederFiles = readdirSync('database/seeders')
+  .filter((file) => file.endsWith('.seeder.ts') && file !== 'registry.ts' && !file.startsWith('_'))
+  .sort();
+const registeredSeeders = [...seederRegistry.matchAll(/filename: '([^']+)'/g)]
+  .map((match) => match[1]!)
+  .sort();
+if (JSON.stringify(seederFiles) !== JSON.stringify(registeredSeeders)) {
+  failures.push('seeder registry is out of sync; use seed:create or refresh the registry');
 }
 
 const doctorCli = await Bun.file('scripts/doctor.ts').text();
