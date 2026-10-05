@@ -308,6 +308,12 @@ if (
 ) {
   failures.push('production migration CLI must guard destructive/source-generation commands');
 }
+if (
+  !migrationRunner.includes("SET LOCAL lock_timeout = '30s'") ||
+  !migrationRunner.includes('Could not acquire PostgreSQL migration lock within 30s')
+) {
+  failures.push('PostgreSQL migration lock acquisition must be bounded');
+}
 
 const migrationRegistry = await Bun.file('database/migrations/registry.ts').text();
 const migrationFiles = readdirSync('database/migrations')
