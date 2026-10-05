@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/server.ts",
-    "build": "bun run build:server && bun run build:worker && bun run build:scheduler && bun run build:job-dead",
+    "build": "bun run build:server && bun run build:worker && bun run build:scheduler && bun run build:job-dead && bun run build:doctor",
     "start": "./dist/server",
     "start:dev": "bun src/server.ts",
     "route:list": "bun scripts/route-list.ts",
@@ -38,7 +38,10 @@
     "job:dead:show": "bun scripts/job-dead.ts show",
     "job:dead:replay": "bun scripts/job-dead.ts replay",
     "job:dead:purge": "bun scripts/job-dead.ts purge",
-    "build:job-dead": "bun build --compile --minify ./scripts/job-dead.ts --outfile dist/job-dead"
+    "build:job-dead": "bun build --compile --minify ./scripts/job-dead.ts --outfile dist/job-dead",
+    "doctor": "bun scripts/doctor.ts",
+    "doctor:offline": "bun scripts/doctor.ts --offline",
+    "build:doctor": "bun build --compile --minify ./scripts/doctor.ts --outfile dist/doctor"
   },
   "dependencies": {
     "hono": "^4.7.0",
