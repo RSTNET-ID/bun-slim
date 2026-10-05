@@ -43,6 +43,7 @@ export const envSchema = z
     METRICS_TOKEN: z.string().min(24).optional(),
     METRICS_HOST: z.string().min(1).default('0.0.0.0'),
     METRICS_PORT: z.coerce.number().int().min(1).max(65535).default(9464),
+    PROCESS_HEALTH_PORT: z.coerce.number().int().min(1).max(65535).default(9465),
 
     // Example CRUD routes are for development/reference only.
     EXAMPLE_ROUTES_ENABLED: booleanFromEnv.default(false),
@@ -93,6 +94,14 @@ export const envSchema = z
     }
 
     const acceptedProtocols = ['postgres', 'postgresql'];
+
+    if (env.METRICS_ENABLED && env.METRICS_PORT === env.PROCESS_HEALTH_PORT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['PROCESS_HEALTH_PORT'],
+        message: 'PROCESS_HEALTH_PORT must differ from METRICS_PORT when metrics are enabled',
+      });
+    }
 
     if (env.METRICS_ENABLED && !env.METRICS_TOKEN) {
       ctx.addIssue({
