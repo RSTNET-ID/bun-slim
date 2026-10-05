@@ -102,21 +102,57 @@ create = async (c: Context) => {
 
 ## 7. Database & Repository
 
+- **Bun.SQL adalah primary database access layer.**
+- Jangan membuat ORM internal, custom query builder, fluent SQL DSL, atau generic `BaseRepository<T>` di atas Bun.SQL tanpa kebutuhan nyata yang sudah dibuktikan.
 - Repository method **tidak boleh** menerima `Context` dari Hono.
-- Semua query menggunakan **tagged template literal** Bun native SQL (`sql\`...\``).
-- Jangan interpolasi string mentah ke dalam query — selalu parameterisasi.
+- Production repository hanya berisi persistence logic terhadap database. Fake/in-memory repository untuk unit/contract test harus berada di `tests/`, bukan menjadi fallback mode di production repository.
+- Semua query menggunakan **parameterized tagged template literal** Bun native SQL (`sql\`...\``).
+- Gunakan typed result generic saat shape row diketahui:
   ```ts
-  // ❌ SQL injection risk
-  await sql`SELECT * FROM examples WHERE name = '${name}'`;
-
-  // ✅ Parameterisasi aman
-  await sql`SELECT * FROM examples WHERE name = ${name}`;
+  const [row] = await sql<ExampleItem[]>\`
+    SELECT id, name, status
+    FROM examples
+    WHERE id = ${id}
+    LIMIT 1
+  \`;
   ```
-- Gunakan `runTransaction(fn)` untuk operasi multi-step yang harus atomic.
-- Partial update harus mengubah hanya kolom yang dikirim bila overwrite field lain dapat menyebabkan lost update.
-- Index wajib dipertimbangkan untuk pola `WHERE`, `ORDER BY`, dan `JOIN`; buat composite index bila sesuai pola query nyata, bukan sekadar satu index per kolom.
+- Untuk filter dinamis, gunakan Bun.SQL fragments daripada membuat query builder:
+  ```ts
+  const statusFilter = status
+    ? sql\`AND status = ${status}\`
+    : sql\`\`;
 
----
+  const rows = await sql<ExampleItem[]>\`
+    SELECT id, name, status
+    FROM examples
+    WHERE TRUE
+      ${statusFilter}
+    ORDER BY id ASC
+    LIMIT ${limit}
+  \`;
+  ```
+- Untuk insert/update dinamis, gunakan object helper Bun.SQL:
+  ```ts
+  await sql\`
+    INSERT INTO examples ${sql({
+      id: crypto.randomUUID(),
+      name,
+      status: 'active',
+    })}
+  \`;
+
+  await sql\`
+    UPDATE examples
+    SET ${sql(changes)}
+    WHERE id = ${id}
+  \`;
+  ```
+- Jangan interpolasi string mentah ke SQL. Value wajib menjadi parameter, dan dynamic identifier hanya boleh memakai helper identifier Bun.SQL setelah input dibatasi/allowlist.
+- Gunakan `runTransaction(fn)` untuk operasi multi-step yang harus atomic. Repository boleh menerima transaction executor agar query tetap memakai API Bun.SQL yang sama di dalam transaction.
+- Repository contract/port kecil boleh dibuat bila ada alasan konkret seperti unit test atau boundary inversion. Jangan membuat hierarchy repository generik hanya untuk mengurangi beberapa baris SQL.
+- Partial update harus mengubah hanya kolom yang dikirim bila overwrite field lain dapat menyebabkan lost update.
+- Index wajib dipertimbangkan untuk pola `WHERE`, `ORDER BY`, dan `JOIN`; buat composite index berdasarkan pola query nyata.
+- MySQL tidak boleh ditiru seolah memiliki PostgreSQL `RETURNING`; gunakan `affectedRows` atau transaction + read-back bila response row memang dibutuhkan.
 
 ## 8. Cursor Pagination
 
