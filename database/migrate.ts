@@ -2,7 +2,7 @@
 import type { SQL, TransactionSQL } from 'bun';
 import { join } from 'node:path';
 import { config } from '../src/config';
-import { getDbClient, closeDbClient } from '../src/database/client';
+import { createDbClient } from '../src/database/client';
 import { migrations } from './migrations/registry';
 import { regenerateMigrationRegistry } from './registry-generator';
 
@@ -15,7 +15,7 @@ interface MigrationModule {
 
 const MIGRATIONS_DIR = join(import.meta.dir, 'migrations');
 const MIGRATION_LOCK_KEY = 'bun-slim-schema-migrations';
-const sql = getDbClient();
+const sql = createDbClient(config.MIGRATION_DATABASE_URL ?? config.DATABASE_URL);
 
 function assertSupportedDriver(): void {
   if (config.DB_DRIVER !== 'postgres') {
@@ -214,5 +214,5 @@ try {
       process.exitCode = 1;
   }
 } finally {
-  await closeDbClient();
+  await sql.close({ timeout: 5 });
 }
