@@ -231,7 +231,7 @@ if (
   !packageJson.scripts?.build?.includes('build:migrate') ||
   !packageJson.scripts?.build?.includes('build:seed')
 ) {
-  failures.push('main build must compile migrate and seed binaries');
+  failures.push('build script must compile migrate and seed binaries');
 }
 if (/^\s*HEALTHCHECK\b/m.test(dockerfile)) {
   failures.push('shared runtime image must not define a role-specific HEALTHCHECK');
