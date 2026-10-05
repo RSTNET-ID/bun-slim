@@ -173,6 +173,21 @@ Error satu task tidak boleh mematikan seluruh scheduler.
 
 Retry business operation tetap menjadi tanggung jawab worker, bukan loop retry scheduler.
 
+## Process Health
+
+Scheduler membuka loopback-only health listener:
+
+```text
+GET http://127.0.0.1:9465/health/live
+GET http://127.0.0.1:9465/health/ready
+```
+
+Port default dikontrol oleh `PROCESS_HEALTH_PORT=9465`.
+
+Readiness aktif setelah scheduler registry lolos validasi dan seluruh cron task selesai diregister. Saat draining dimulai, readiness berubah menjadi 503 sebelum task aktif ditunggu.
+
+Health listener ini tidak dipublish ke host pada baseline Compose.
+
 ## Shutdown
 
 SIGTERM/SIGINT:
