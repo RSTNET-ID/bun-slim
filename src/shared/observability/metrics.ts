@@ -12,7 +12,7 @@ function statusClass(status: number): string {
   return `${Math.floor(status / 100)}xx`;
 }
 
-type WorkerResult =
+export type WorkerResult =
   | 'success'
   | 'retry'
   | 'dead_letter'
