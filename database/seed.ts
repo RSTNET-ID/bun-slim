@@ -87,6 +87,10 @@ async function runSeeders(name?: string, force = false): Promise<void> {
 }
 
 async function createSeeder(name: string): Promise<void> {
+  if (config.APP_ENV === 'staging' || config.APP_ENV === 'production') {
+    throw new Error('seed create is disabled in staging/production');
+  }
+
   if (!name) {
     throw new Error('Usage: bun run seed:create <name>');
   }
