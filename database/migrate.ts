@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 import type { ReservedSQL, SQL } from 'bun';
-import { readdir } from 'node:fs/promises';
-import { join, basename } from 'node:path';
+import { join } from 'node:path';
 import { config } from '../src/config';
 import { getDbClient, closeDbClient } from '../src/database/client';
+import { migrations } from './migrations/registry';
+import { regenerateMigrationRegistry } from './registry-generator';
 
 type MigrationExecutor = SQL | ReservedSQL;
 
@@ -20,6 +21,10 @@ function assertSupportedDriver(): void {
   if (config.DB_DRIVER !== 'mysql') {
     throw new Error(`Migration runner supports MySQL 8 only. DB_DRIVER=${config.DB_DRIVER}`);
   }
+}
+
+function asMigrationModule(entry: (typeof migrations)[number]): MigrationModule {
+  return entry as unknown as MigrationModule;
 }
 
 async function assertMysql8(): Promise<void> {
@@ -91,55 +96,44 @@ async function withMigrationLock<T>(fn: (connection: ReservedSQL) => Promise<T>)
   }
 }
 
-async function discoverMigrations(): Promise<string[]> {
-  const files = await readdir(MIGRATIONS_DIR);
-  return files.filter((file) => file.endsWith('.ts') && !file.startsWith('_')).sort();
-}
-
-async function loadMigration(filename: string): Promise<MigrationModule> {
-  return await import(join(MIGRATIONS_DIR, filename));
-}
-
 async function cmdUp(): Promise<void> {
   await ensureMigrationTable();
-  const files = await discoverMigrations();
 
-  for (const file of files) {
+  for (const entry of migrations) {
     await withMigrationLock(async (connection) => {
-      if (await isApplied(file, connection)) return;
+      if (await isApplied(entry.version, connection)) return;
 
-      console.log(`⬆️  Running migration: ${file}`);
-      const mod = await loadMigration(file);
-      await mod.up(connection);
-      await markApplied(file, connection);
-      console.log(`✅ Applied: ${file}`);
+      console.log(`⬆️  Running migration: ${entry.version}`);
+      const migration = asMigrationModule(entry);
+      await migration.up(connection);
+      await markApplied(entry.version, connection);
+      console.log(`✅ Applied: ${entry.version}`);
     });
   }
 
   const applied = await getAppliedMigrations();
-  const pending = files.filter((file) => !applied.has(file));
+  const pending = migrations.filter((entry) => !applied.has(entry.version));
   if (pending.length === 0) console.log('✅ No pending migrations.');
 }
 
 async function cmdDown(): Promise<boolean> {
   await ensureMigrationTable();
-  const files = await discoverMigrations();
 
   return await withMigrationLock(async (connection) => {
     const applied = await getAppliedMigrations(connection);
-    const appliedFiles = files.filter((file) => applied.has(file));
+    const appliedEntries = migrations.filter((entry) => applied.has(entry.version));
 
-    if (appliedFiles.length === 0) {
+    if (appliedEntries.length === 0) {
       console.log('⚠️  No applied migrations to roll back.');
       return false;
     }
 
-    const last = appliedFiles[appliedFiles.length - 1]!;
-    console.log(`⬇️  Rolling back: ${last}`);
-    const mod = await loadMigration(last);
-    await mod.down(connection);
-    await markReverted(last, connection);
-    console.log(`✅ Reverted: ${last}`);
+    const last = appliedEntries[appliedEntries.length - 1]!;
+    console.log(`⬇️  Rolling back: ${last.version}`);
+    const migration = asMigrationModule(last);
+    await migration.down(connection);
+    await markReverted(last.version, connection);
+    console.log(`✅ Reverted: ${last.version}`);
     return true;
   });
 }
@@ -188,21 +182,21 @@ export async function down(sql: MigrationExecutor): Promise<void> {
 `;
 
   await Bun.write(filePath, template);
-  console.log(`✅ Created migration: ${filename}`);
+  await regenerateMigrationRegistry();
+  console.log(`✅ Created migration and refreshed registry: ${filename}`);
 }
 
 async function cmdStatus(): Promise<void> {
   await ensureMigrationTable();
   const applied = await getAppliedMigrations();
-  const files = await discoverMigrations();
 
   console.log('\nMigration Status:');
   console.log('─────────────────────────────────────────');
-  for (const file of files) {
-    const status = applied.has(file) ? '✅ applied' : '⏳ pending';
-    console.log(`  ${status}  ${basename(file)}`);
+  for (const entry of migrations) {
+    const status = applied.has(entry.version) ? '✅ applied' : '⏳ pending';
+    console.log(`  ${status}  ${entry.version}`);
   }
-  if (files.length === 0) console.log('  (no migration files found)');
+  if (migrations.length === 0) console.log('  (no migrations registered)');
   console.log('─────────────────────────────────────────\n');
 }
 
