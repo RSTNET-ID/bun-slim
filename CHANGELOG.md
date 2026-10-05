@@ -7,6 +7,7 @@ Format mengikuti semantic versioning.
 ## Unreleased - mysql-v8
 
 ### Added
+- wire standalone worker/scheduler metrics listeners and scheduler execution metrics
 - DLQ operational CLI for bounded list/show, atomic replay, and retention purge
 - transactional outbox reliability standard for DB-write + Redis job atomicity
 - dedicated `mysql-v8` branch based on `main`
