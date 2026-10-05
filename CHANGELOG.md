@@ -7,6 +7,7 @@ Format mengikuti semantic versioning.
 ## Unreleased
 
 ### Added
+- wire standalone worker/scheduler metrics listeners and scheduler execution metrics
 - DLQ operational CLI for bounded list/show, atomic replay, and retention purge
 - transactional outbox reliability standard for DB-write + Redis job atomicity
 - transactional, idempotent PostgreSQL database seeder with advisory locking and production `--force` guard
