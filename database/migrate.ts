@@ -176,7 +176,20 @@ async function cmdStatus(): Promise<void> {
 
 const [command, ...args] = process.argv.slice(2);
 
+function assertProductionMigrationCommandAllowed(): void {
+  if (config.APP_ENV !== 'production') return;
+
+  if (command === 'create') {
+    throw new Error('migrate create is disabled in production');
+  }
+
+  if (command === 'down' && !args.includes('--force')) {
+    throw new Error('Production migrate down requires --force');
+  }
+}
+
 try {
+  assertProductionMigrationCommandAllowed();
   assertSupportedDriver();
 
   switch (command) {
