@@ -6,6 +6,7 @@ import { markDraining } from '@/shared/lifecycle/state';
 
 const server = Bun.serve({
   hostname: config.SERVER_HOST,
+  http2: config.APP_ENV === 'production' ? true : false,
   port: config.PORT,
   idleTimeout: config.SERVER_IDLE_TIMEOUT_SECONDS,
   maxRequestBodySize: config.MAX_REQUEST_BODY_BYTES,

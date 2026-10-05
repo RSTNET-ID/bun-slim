@@ -33,7 +33,9 @@ async function assertMysql8(): Promise<void> {
   const major = Number.parseInt(version.split('.')[0] ?? '', 10);
 
   if (/mariadb/i.test(version) || !Number.isInteger(major) || major < 8) {
-    throw new Error(`MySQL 8+ is required. Connected server reports version "${version || 'unknown'}"`);
+    throw new Error(
+      `MySQL 8+ is required. Connected server reports version "${version || 'unknown'}"`
+    );
   }
 }
 
@@ -157,7 +159,10 @@ async function cmdCreate(name: string): Promise<void> {
     return;
   }
 
-  const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[^0-9]/g, '')
+    .slice(0, 14);
   const normalizedName = name
     .trim()
     .toLowerCase()
@@ -196,7 +201,10 @@ async function cmdStatus(): Promise<void> {
     const status = applied.has(entry.version) ? '✅ applied' : '⏳ pending';
     console.log(`  ${status}  ${entry.version}`);
   }
-  if (migrations.length === 0) console.log('  (no migrations registered)');
+  if ((migrations?.length as number) === 0) {
+    console.log('  (no migrations registered)');
+  }
+
   console.log('─────────────────────────────────────────\n');
 }
 
