@@ -1,0 +1,15 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "docker:pinDigests"
+  ],
+  "dependencyDashboard": true,
+  "packageRules": [
+    {
+      "description": "Keep Docker base and service image digest updates reviewable",
+      "matchDatasources": ["docker"],
+      "automerge": false
+    }
+  ]
+}
