@@ -32,8 +32,8 @@ Dependency **tidak boleh** dibalik.
   // ✅ Benar — biarkan propagate
   await repo.create(data);
   ```
-- `catch` yang hanya digunakan untuk fallback (misal: in-memory store saat DB unavailable di dev) harus diberi komentar jelas.
-- Repository layer tidak boleh menelan DB error di production path. Silent fallback hanya untuk in-memory test mode.
+- Repository layer tidak boleh menelan DB error atau fallback ke in-memory store ketika database gagal. Dependency failure harus terlihat oleh caller/health handling.
+- Fake/in-memory persistence hanya untuk test dan ditempatkan di `tests/`, bukan sebagai runtime fallback.
 
 ---
 
@@ -106,47 +106,53 @@ create = async (c: Context) => {
 - Jangan membuat ORM internal, custom query builder, fluent SQL DSL, atau generic `BaseRepository<T>` di atas Bun.SQL tanpa kebutuhan nyata yang sudah dibuktikan.
 - Repository method **tidak boleh** menerima `Context` dari Hono.
 - Production repository hanya berisi persistence logic terhadap database. Fake/in-memory repository untuk unit/contract test harus berada di `tests/`, bukan menjadi fallback mode di production repository.
-- Semua query menggunakan **parameterized tagged template literal** Bun native SQL (`sql\`...\``).
+- Semua query menggunakan **parameterized tagged template literal** Bun native SQL.
 - Gunakan typed result generic saat shape row diketahui:
-  ```ts
-  const [row] = await sql<ExampleItem[]>\`
-    SELECT id, name, status
-    FROM examples
-    WHERE id = ${id}
-    LIMIT 1
-  \`;
-  ```
+
+~~~ts
+const [row] = await sql<ExampleItem[]>`
+  SELECT id, name, status
+  FROM examples
+  WHERE id = ${id}
+  LIMIT 1
+`;
+~~~
+
 - Untuk filter dinamis, gunakan Bun.SQL fragments daripada membuat query builder:
-  ```ts
-  const statusFilter = status
-    ? sql\`AND status = ${status}\`
-    : sql\`\`;
 
-  const rows = await sql<ExampleItem[]>\`
-    SELECT id, name, status
-    FROM examples
-    WHERE TRUE
-      ${statusFilter}
-    ORDER BY id ASC
-    LIMIT ${limit}
-  \`;
-  ```
+~~~ts
+const statusFilter = status
+  ? sql`AND status = ${status}`
+  : sql``;
+
+const rows = await sql<ExampleItem[]>`
+  SELECT id, name, status
+  FROM examples
+  WHERE TRUE
+    ${statusFilter}
+  ORDER BY id ASC
+  LIMIT ${limit}
+`;
+~~~
+
 - Untuk insert/update dinamis, gunakan object helper Bun.SQL:
-  ```ts
-  await sql\`
-    INSERT INTO examples ${sql({
-      id: crypto.randomUUID(),
-      name,
-      status: 'active',
-    })}
-  \`;
 
-  await sql\`
-    UPDATE examples
-    SET ${sql(changes)}
-    WHERE id = ${id}
-  \`;
-  ```
+~~~ts
+await sql`
+  INSERT INTO examples ${sql({
+    id: crypto.randomUUID(),
+    name,
+    status: 'active',
+  })}
+`;
+
+await sql`
+  UPDATE examples
+  SET ${sql(changes)}
+  WHERE id = ${id}
+`;
+~~~
+
 - Jangan interpolasi string mentah ke SQL. Value wajib menjadi parameter, dan dynamic identifier hanya boleh memakai helper identifier Bun.SQL setelah input dibatasi/allowlist.
 - Gunakan `runTransaction(fn)` untuk operasi multi-step yang harus atomic. Repository boleh menerima transaction executor agar query tetap memakai API Bun.SQL yang sama di dalam transaction.
 - Repository contract/port kecil boleh dibuat bila ada alasan konkret seperti unit test atau boundary inversion. Jangan membuat hierarchy repository generik hanya untuk mengurangi beberapa baris SQL.
@@ -154,6 +160,7 @@ create = async (c: Context) => {
 - Index wajib dipertimbangkan untuk pola `WHERE`, `ORDER BY`, dan `JOIN`; buat composite index berdasarkan pola query nyata.
 - MySQL tidak boleh ditiru seolah memiliki PostgreSQL `RETURNING`; gunakan `affectedRows` atau transaction + read-back bila response row memang dibutuhkan.
 
+---
 ## 8. Cursor Pagination
 
 - Gunakan cursor pagination untuk list endpoint, bukan offset/page.
@@ -205,7 +212,7 @@ create = async (c: Context) => {
 ## 11. Testing
 
 - Unit test: business logic/service tanpa HTTP dan tanpa database nyata.
-- Contract test: HTTP → handler → service → in-memory repository untuk memvalidasi API contract.
+- Contract test: HTTP → handler → service → **test-only fake repository** untuk memvalidasi API contract tanpa database nyata.
 - Integration test: repository/transaction terhadap MySQL 8 nyata.
 - Setiap test file harus **terisolasi**: gunakan instance baru per `beforeEach`, bukan shared state.
 - Cover minimal: success path, validation failure, not found, business failure.
