@@ -31,7 +31,15 @@ Untuk Docker penuh:
 docker compose up --build
 ```
 
-Shared image tidak memiliki image-level healthcheck karena image yang sama menjalankan server, worker, dan scheduler. Compose memasang health probe per role, graceful-stop budget, resource limit baseline, dan log rotation. Worker/scheduler memakai loopback process health pada `127.0.0.1:9465`. Lihat `docs/19-CONTAINER-RUNTIME-HARDENING.md`.
+Shared image tidak memiliki image-level healthcheck karena image yang sama menjalankan server, worker, dan scheduler. Compose memasang health probe per role, graceful-stop budget, resource limit baseline, dan log rotation. Worker/scheduler memakai loopback process health pada `127.0.0.1:9465`.
+
+`docker compose up` otomatis menjalankan one-shot `./migrate up` setelah MySQL healthy dan baru menjalankan app setelah migration sukses. Seeder tetap opt-in:
+
+```bash
+docker compose --profile seed run --rm seed
+```
+
+Runtime image membawa compiled `./migrate` dan `./seed`; TypeScript source `database/` tidak ikut runtime image. Lihat `docs/08-DEPLOYMENT.md` dan `docs/19-CONTAINER-RUNTIME-HARDENING.md`.
 
 ## Database
 
