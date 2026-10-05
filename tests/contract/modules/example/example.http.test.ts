@@ -9,7 +9,10 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { Hono } from 'hono';
 import { ExampleHandler } from '@/modules/example/example.handler';
 import { ExampleService } from '@/modules/example/example.service';
-import { ExampleRepository } from '@/modules/example/example.repository';
+import {
+  InMemoryExampleRepository,
+  TEST_EXAMPLE_CATEGORY_IDS,
+} from '../../../helpers/in-memory-example.repository';
 import { globalErrorHandler } from '@/shared/middleware/error-handler';
 import { requestIdMiddleware } from '@/shared/middleware/request-id';
 import {
@@ -22,11 +25,11 @@ import { parseBody, parseParam, parseQuery } from '@/shared/http';
 import type { AppEnv } from '@/shared/types/context';
 
 function buildApp() {
-  const repository = new ExampleRepository(true);
+  const repository = new InMemoryExampleRepository();
   const service = new ExampleService(repository);
   const handler = new ExampleHandler(service);
 
-  // Buat route baru dengan handler yang diinjeksi (in-memory)
+  // Buat route baru dengan handler yang diinjeksi test-only repository fake.
   const { exampleRoute: testRoute } = buildTestRoute(handler);
 
   const app = new Hono<AppEnv>();
@@ -203,7 +206,7 @@ describe('Example HTTP API — integration', () => {
     });
 
     it('should return item with category when category_id is set', async () => {
-      const item = await service.create({ name: 'Has Cat', category_id: 'cat-01' });
+      const item = await service.create({ name: 'Has Cat', category_id: TEST_EXAMPLE_CATEGORY_IDS.GENERAL });
       const res = await app.request(`/api/v1/examples/${item.id}/lookup`);
       expect(res.status).toBe(200);
       const body = (await res.json()) as any;
