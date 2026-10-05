@@ -399,7 +399,7 @@ if (JSON.stringify(seederFiles) !== JSON.stringify(registeredSeeders)) {
 
 const doctorCli = await Bun.file('scripts/doctor.ts').text();
 for (const fragment of [
-  'envSchema.safeParse(process.env)',
+  'envSchema.safeParse(resolveFileBackedSecrets(process.env))',
   'await sql`SELECT 1`',
   "await redis.send('PING', [])",
   "case '--offline'",
