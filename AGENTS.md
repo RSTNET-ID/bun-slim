@@ -21,9 +21,10 @@ Sebelum mengubah kode:
 16. Worker, bila diperlukan, menggunakan Bun native RedisClient + Redis Streams consumer group.
 17. Scheduler, bila diperlukan, menggunakan dedicated `Bun.cron()` process; runtime/database tetap UTC, sedangkan jadwal memakai IANA timezone eksplisit dari `SCHEDULER_TIMEZONE` atau override per task. Jangan register cron di HTTP server.
 18. Worker handler wajib memperlakukan delivery sebagai at-least-once dan menjaga operasi write tetap idempotent.
-19. Tambah atau update test untuk perubahan behavior.
-20. Update dokumentasi terkait architecture, API, data, security, observability, atau deployment.
-21. Perubahan architecture penting harus memiliki ADR.
+19. Gunakan `bun run migrate create <name>` dan `bun run seed:create <name>` agar static runtime registry ikut diperbarui; jangan menambah file migration/seeder tanpa registry sync.
+20. Tambah atau update test untuk perubahan behavior.
+21. Update dokumentasi terkait architecture, API, data, security, observability, atau deployment.
+22. Perubahan architecture penting harus memiliki ADR.
 
 Dependency direction default:
 
