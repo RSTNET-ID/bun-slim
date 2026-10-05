@@ -1,5 +1,5 @@
 import { NotFoundError } from '@/shared/errors';
-import { ExampleRepository } from './example.repository';
+import { ExampleRepository, type ExampleRepositoryPort } from './example.repository';
 import type {
   ExampleItem,
   ExampleWithLookup,
@@ -9,9 +9,9 @@ import type {
 } from './example.types';
 
 export class ExampleService {
-  private repository: ExampleRepository;
+  private repository: ExampleRepositoryPort;
 
-  constructor(repository: ExampleRepository = new ExampleRepository()) {
+  constructor(repository: ExampleRepositoryPort = new ExampleRepository()) {
     this.repository = repository;
   }
 
