@@ -41,6 +41,8 @@ export const envSchema = z
     // Optional Prometheus-compatible metrics endpoint.
     METRICS_ENABLED: booleanFromEnv.default(false),
     METRICS_TOKEN: z.string().min(24).optional(),
+    METRICS_HOST: z.string().min(1).default('0.0.0.0'),
+    METRICS_PORT: z.coerce.number().int().min(1).max(65535).default(9464),
 
     // Example CRUD routes are for development/reference only.
     EXAMPLE_ROUTES_ENABLED: booleanFromEnv.default(false),
