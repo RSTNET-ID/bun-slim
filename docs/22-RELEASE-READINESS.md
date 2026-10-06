@@ -75,6 +75,17 @@ Pastikan:
 - gitignore melindungi local env/build/dependency files
 - AGENTS tetap menunjuk source-of-truth docs
 
+## Repository Governance Gate
+
+Sebelum repository diperlakukan sebagai protected production baseline:
+- `main` dan `mysql-v8` harus memakai branch protection/ruleset yang melarang force-push dan branch deletion
+- perubahan ke protected branch harus melalui pull request
+- required CI status checks diaktifkan setelah runner/quota CI tersedia dan nama checks stabil
+- Renovate GitHub App atau Renovate self-hosted harus benar-benar aktif; keberadaan `renovate.json` saja tidak menjalankan updater
+- initial Docker digest pin PR harus direview sampai base/service images berbentuk `tag@sha256:<digest>`
+
+Kontrol di atas berada di repository/organization settings dan tidak dapat dibuktikan oleh source tree saja.
+
 ## Release Flow
 
 1. merge final PR ke `main`
