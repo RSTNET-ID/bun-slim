@@ -44,14 +44,14 @@ export function parseDoctorArgs(args: string[]): DoctorOptions {
 }
 
 export function isSupportedBunVersion(version: string): boolean {
-  const [majorRaw = '0', minorRaw = '0', patchRaw = '0'] = version.split('.');
-  const major = Number.parseInt(majorRaw, 10);
-  const minor = Number.parseInt(minorRaw, 10);
-  const patch = Number.parseInt(patchRaw, 10);
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
+  if (!match) return false;
 
-  if (![major, minor, patch].every(Number.isFinite)) return false;
+  const major = Number.parseInt(match[1] ?? '0', 10);
+  const minor = Number.parseInt(match[2] ?? '0', 10);
+  const patch = Number.parseInt(match[3] ?? '0', 10);
 
-  return major > 1 || (major === 1 && (minor > 4 || (minor === 4 && patch >= 2)));
+  return major === 1 && minor === 4 && patch >= 2;
 }
 
 export function hasDoctorFailures(checks: DoctorCheck[]): boolean {
@@ -143,7 +143,7 @@ async function runDoctor(options: DoctorOptions): Promise<number> {
   checks.push({
     name: 'bun-runtime',
     status: isSupportedBunVersion(Bun.version) ? 'pass' : 'fail',
-    detail: `Bun ${Bun.version}; required >= 1.4.2`,
+    detail: `Bun ${Bun.version}; required 1.4.x with patch >= 1.4.2`,
   });
 
   if (config.DB_TLS_CA_FILE) {
