@@ -20,8 +20,10 @@ Gunakan private security reporting/repository security advisory pada GitHub orga
 - container production berjalan non-root
 - Redis/database tidak diekspos public tanpa kebutuhan dan kontrol eksplisit
 - reference/example routes tidak aktif di staging/production
-- metrics yang diaktifkan membutuhkan bearer token dan tetap sebaiknya dibatasi jaringan
+- metrics yang diaktifkan membutuhkan bearer token dan wajib dibatasi jaringan
+- `/metrics` dan `/health/ready` adalah operational endpoints untuk trusted/internal paths, bukan public end-user routes
 - provider/outbound URL tidak boleh berasal langsung dari input user tanpa SSRF/origin policy
+- production runtime harus berada pada Bun 1.4.x yang direview, minimal 1.4.2; minor/major baru memerlukan review dan validation sebelum diizinkan
 
 ## Supported Version
 
