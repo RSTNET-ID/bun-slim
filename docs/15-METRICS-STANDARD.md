@@ -12,7 +12,7 @@ METRICS_HOST=0.0.0.0
 METRICS_PORT=9464
 ```
 
-Saat `METRICS_ENABLED=true`, `METRICS_TOKEN` wajib diisi minimal 24 karakter.
+Saat `METRICS_ENABLED=true`, `METRICS_TOKEN` wajib diisi minimal 24 karakter. Authorization helper juga fail-closed: token yang tidak tersedia selalu menghasilkan unauthorized.
 
 ## Endpoints by Process
 
@@ -42,7 +42,7 @@ Health listener tidak membawa metrics dan tidak dipublish ke host pada baseline 
 Authorization: Bearer <METRICS_TOKEN>
 ```
 
-Production juga sebaiknya membatasi listener melalui private network, reverse proxy allowlist, service mesh policy, atau monitoring network.
+Production wajib membatasi metrics melalui private network, reverse proxy allowlist, service mesh policy, atau monitoring network. Bearer token adalah lapisan tambahan, bukan alasan untuk mempublikasikan endpoint metrics ke Internet.
 
 Jangan memasukkan secret atau data pelanggan ke label.
 
