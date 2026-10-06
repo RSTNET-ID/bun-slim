@@ -58,6 +58,9 @@ Format mengikuti semantic versioning.
 - recursive structured-log secret redaction
 
 ### Security hardening
+- metrics authorization now fails closed when the configured token is unavailable
+- runtime doctor now accepts only the reviewed Bun 1.4.x production line starting at 1.4.2
+- production policy now requires `/metrics` and `/health/ready` to remain on trusted/internal exposure paths
 - reference CRUD routes are disabled outside development/test
 - enabled metrics require bearer authentication
 - auth verifier failures fail closed to generic 401 responses
