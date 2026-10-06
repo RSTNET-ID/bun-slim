@@ -55,6 +55,8 @@ segera setelah shutdown dimulai.
 
 Pada kondisi draining, readiness tidak perlu melakukan dependency probe lagi.
 
+`/health/ready` adalah endpoint untuk orchestrator/load balancer dan tidak boleh dipublikasikan sebagai endpoint Internet umum. Baseline response boleh membawa status dependency/latency untuk operasi internal; edge production harus membatasi route ini ke jalur trusted/internal.
+
 ## Liveness
 
 `GET /health/live` tetap berarti process/HTTP hidup.
