@@ -4,7 +4,7 @@ export function isMetricsAuthorized(
   authorization: string | null | undefined,
   token: string | undefined
 ): boolean {
-  if (!token) return true;
+  if (!token) return false;
   if (!authorization) return false;
 
   const expected = `Bearer ${token}`;
