@@ -44,7 +44,7 @@ Exit code:
 Doctor memeriksa:
 
 - environment melalui schema yang sama dengan service runtime, termasuk file-backed secrets dan effective `REDIS_NAMESPACE`
-- runtime Bun minimal 1.4.2
+- runtime Bun pada reviewed production line `1.4.x`, minimal `1.4.2`; minor/major baru harus direview sebelum diizinkan
 - `DB_TLS_CA_FILE` bila dikonfigurasi
 - worker registry ketika `WORKER_ENABLED=true`
 - scheduler registry dan cron/timezone validation
@@ -118,7 +118,7 @@ Doctor sebaiknya dijalankan sebagai deployment/pre-start check, bukan sebagai li
 
 ## Release Rule
 
-Production image wajib membawa `./doctor`. Release check menjaga:
+Production image wajib membawa `./doctor`. Runtime doctor sengaja menolak Bun minor/major yang belum direview walaupun versinya lebih baru. Release check menjaga:
 
 - source doctor tersedia
 - package scripts tersedia
