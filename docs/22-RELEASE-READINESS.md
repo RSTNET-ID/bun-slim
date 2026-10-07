@@ -86,6 +86,19 @@ Sebelum repository diperlakukan sebagai protected production baseline:
 
 Kontrol di atas berada di repository/organization settings dan tidak dapat dibuktikan oleh source tree saja.
 
+## Public Repository Gate
+
+Sebelum atau segera setelah visibility repository diubah menjadi public:
+- pastikan `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SUPPORT.md`, dan GitHub issue/PR templates tersedia
+- review metadata commit karena author/committer email pada Git history dapat terlihat publik
+- verifikasi current tree hanya membawa `.env.example`, bukan `.env`, private key, credential file, atau mounted secret
+- setelah repository public, review GitHub secret-scanning alerts; public repositories dipindai otomatis termasuk seluruh Git history dan semua branch
+- aktifkan push protection/security settings yang tersedia untuk mencegah secret baru masuk
+- aktifkan branch protection/ruleset untuk `main` dan `mysql-v8`
+- aktifkan Renovate dan review initial Docker digest pin PR
+
+Jangan rewrite Git history hanya untuk kosmetik metadata tanpa rencana khusus. History rewrite mengubah commit SHA, dapat membatalkan signature/tag/reference, dan harus diperlakukan sebagai operasi migrasi repository.
+
 ## Release Flow
 
 1. merge final PR ke `main`
