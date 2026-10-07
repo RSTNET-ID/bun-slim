@@ -1,0 +1,51 @@
+name: Bug report
+description: Laporkan bug atau regression yang dapat direproduksi.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Jangan sertakan credential, token, private key, data pelanggan, atau URL yang berisi password.
+  - type: dropdown
+    id: branch
+    attributes:
+      label: Branch
+      options:
+        - main (PostgreSQL)
+        - mysql-v8
+        - other/fork
+    validations:
+      required: true
+  - type: input
+    id: bun
+    attributes:
+      label: Bun version
+      placeholder: "1.4.2"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Berikan langkah minimal dan deterministik.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or additional context
+      description: Hapus semua secret dan data sensitif sebelum mengirim.
