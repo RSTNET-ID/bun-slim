@@ -1,0 +1,36 @@
+name: Feature request
+description: Usulkan perubahan dengan use case production yang konkret.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / use case
+      description: Masalah nyata apa yang ingin diselesaikan?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: Jelaskan solusi paling kecil yang cukup.
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - core / database-agnostic
+        - PostgreSQL main
+        - MySQL 8
+        - optional pack / documentation
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Mengapa ini perlu masuk starter, bukan service-specific implementation?
