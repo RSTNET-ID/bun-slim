@@ -6,6 +6,14 @@ const REQUIRED_FILES = [
   'README.md',
   'SECURITY.md',
   'CHANGELOG.md',
+  'LICENSE',
+  'CONTRIBUTING.md',
+  'CODE_OF_CONDUCT.md',
+  'SUPPORT.md',
+  '.github/PULL_REQUEST_TEMPLATE.md',
+  '.github/ISSUE_TEMPLATE/bug_report.yml',
+  '.github/ISSUE_TEMPLATE/feature_request.yml',
+  '.github/ISSUE_TEMPLATE/config.yml',
   '.env.example',
   '.gitignore',
   '.github/workflows/ci.yml',
@@ -104,6 +112,9 @@ for (const path of REQUIRED_FILES) {
 const packageJson = (await Bun.file('package.json').json()) as {
   name?: string;
   version?: string;
+  private?: boolean;
+  license?: string;
+  repository?: { type?: string; url?: string };
   scripts?: Record<string, string>;
 };
 
@@ -113,6 +124,18 @@ if (!packageJson.name || !/^[a-z0-9][a-z0-9._-]*$/.test(packageJson.name)) {
 
 if (!packageJson.version || !/^\d+\.\d+\.\d+$/.test(packageJson.version)) {
   failures.push('package.json version must use stable semver X.Y.Z');
+}
+
+if (packageJson.license !== 'MIT') {
+  failures.push('package.json license must be MIT for the public starter');
+}
+
+if (packageJson.private !== true) {
+  failures.push('package.json must remain private=true to prevent accidental registry publication');
+}
+
+if (packageJson.repository?.url !== 'git+https://github.com/RSTNET-ID/bun-slim.git') {
+  failures.push('package.json repository URL must point to RSTNET-ID/bun-slim');
 }
 
 for (const script of REQUIRED_SCRIPTS) {
