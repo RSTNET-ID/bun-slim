@@ -2,6 +2,33 @@
 
 Starter microservice ringan menggunakan Bun native + Hono.
 
+## Why Bun Slim
+
+Bun Slim ditujukan sebagai baseline backend yang kecil tetapi sudah memikirkan hal-hal production yang biasanya baru muncul setelah service mulai dipakai: lifecycle, migration, seeder, worker, scheduler, idempotency, observability, secret handling, container hardening, dan release guard.
+
+Prinsip utamanya:
+
+- gunakan kemampuan native Bun lebih dulu bila sudah cukup;
+- pertahankan dependency runtime sesedikit mungkin;
+- business logic tidak bergantung pada Hono context;
+- persistence tetap eksplisit dan database-specific;
+- production safety lebih penting daripada abstraction yang terlihat rapi;
+- core tetap kecil, kemampuan domain masuk ke service turunan.
+
+## Intended Scope
+
+Cocok untuk REST/API service, internal service, mobile backend, provider integration, background worker, dan service yang membutuhkan SQL persistence dengan lifecycle production yang jelas.
+
+Bun Slim sengaja **tidak** membawa ORM, generic query builder, JWT provider tertentu, RBAC framework, Kafka, object-storage SDK, OpenTelemetry stack besar, Kubernetes manifest, atau service-discovery framework di core. Tambahkan hanya bila service nyata membutuhkannya.
+
+## Database Variants
+
+- `main`: PostgreSQL baseline.
+- `mysql-v8`: MySQL 8 baseline.
+
+Keduanya menjaga application contract yang serupa, tetapi database behavior tidak dipaksa menjadi abstraction palsu.
+
+
 ## Baseline
 
 - **Runtime**: Bun 1.4.2+ (1.4.x production baseline)
