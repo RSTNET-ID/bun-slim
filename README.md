@@ -211,3 +211,11 @@ docker compose \
 Runtime/database tetap UTC. Scheduler default memakai `SCHEDULER_TIMEZONE=UTC`, dapat diubah menjadi IANA timezone seperti `Asia/Jakarta`, dan setiap task boleh override `timezone`. Default production replica count adalah 1. Lihat `docs/25-SCHEDULER-STANDARD.md`.
 
 Lihat `docs/` dan `AGENTS.md` untuk architecture, database, security, testing, deployment, dan coding rules.
+
+## Contributing and License
+
+Kontribusi dipersilakan melalui pull request. Baca `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, dan `SECURITY.md` sebelum mengirim perubahan atau laporan keamanan.
+
+Support komunitas dijelaskan di `SUPPORT.md`.
+
+Bun Slim dirilis dengan **MIT License**. Lihat `LICENSE`.
