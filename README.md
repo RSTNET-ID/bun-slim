@@ -2,6 +2,33 @@
 
 Branch `mysql-v8` adalah varian Bun Slim yang menggunakan **MySQL 8** sebagai database baseline.
 
+## Why Bun Slim
+
+Bun Slim adalah starter backend kecil yang sudah membawa baseline lifecycle dan production hardening tanpa menjadikan core sebagai koleksi framework. Branch ini mempertahankan filosofi yang sama dengan `main`, tetapi persistence mengikuti MySQL 8 secara eksplisit.
+
+Prinsip utamanya:
+
+- gunakan kemampuan native Bun lebih dulu bila sudah cukup;
+- pertahankan dependency runtime sesedikit mungkin;
+- business logic tidak bergantung pada Hono context;
+- hindari ORM/query-builder internal tanpa kebutuhan konkret;
+- production safety lebih penting daripada abstraction kosmetik;
+- fitur domain tetap berada di service turunan.
+
+## Intended Scope
+
+Cocok untuk REST/API service, internal service, mobile backend, provider integration, worker, scheduler, dan service MySQL 8 yang membutuhkan baseline production.
+
+Bun Slim sengaja tidak memasukkan JWT provider tertentu, RBAC framework, Kafka, object-storage SDK, tracing stack besar, atau orchestration framework ke core.
+
+## Database Variants
+
+- `main`: PostgreSQL baseline.
+- `mysql-v8`: MySQL 8 baseline ini.
+
+Application contract dijaga serupa, tetapi detail schema, locking, DDL, cursor query, dan transaction behavior tetap database-specific.
+
+
 ## Baseline
 
 - **Runtime**: Bun 1.4.2+ (1.4.x production baseline)
