@@ -7,6 +7,7 @@ Format mengikuti semantic versioning.
 ## Unreleased - mysql-v8
 
 ### Added
+- public open-source project files added: MIT license, contributing guide, code of conduct, support policy, and GitHub issue/PR templates
 - shared Redis root namespace derived from `SERVICE_NAME:APP_ENV`, with explicit `REDIS_NAMESPACE` override support
 - compiled migrate/seed binaries with one-shot Compose auto-migration gate
 - Trivy image scanning, SPDX SBOM generation, and Renovate multi-branch digest pinning policy
