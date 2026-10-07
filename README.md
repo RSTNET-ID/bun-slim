@@ -348,3 +348,11 @@ Dokumentasi penutup:
 - `CHANGELOG.md`
 
 Setelah v1, tambahan framework/infrastruktur baru sebaiknya masuk service-specific implementation atau optional pack, bukan core starter.
+
+## Contributing and License
+
+Kontribusi dipersilakan melalui pull request. Baca `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, dan `SECURITY.md` sebelum mengirim perubahan atau laporan keamanan.
+
+Support komunitas dijelaskan di `SUPPORT.md`.
+
+Bun Slim dirilis dengan **MIT License**. Lihat `LICENSE`.
