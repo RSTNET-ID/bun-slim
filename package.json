@@ -67,5 +67,23 @@
       "prettier --write",
       "bash scripts/typecheck-staged.sh"
     ]
-  }
+  },
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RSTNET-ID/bun-slim.git"
+  },
+  "bugs": {
+    "url": "https://github.com/RSTNET-ID/bun-slim/issues"
+  },
+  "homepage": "https://github.com/RSTNET-ID/bun-slim#readme",
+  "keywords": [
+    "bun",
+    "hono",
+    "typescript",
+    "microservice",
+    "starter",
+    "docker"
+  ]
 }
